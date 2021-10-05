@@ -2,24 +2,26 @@ pragma solidity ^0.8.0;
 
 import './Market.sol';
 import "@openzeppelin/contracts/access/Ownable.sol";
+import './interfaces/IModerationCommitee.sol';
 
 
 contract MarketFactory is Ownable {
+
     struct DeployParams {
         address factory;
         address creator;
-        bytes32 identifier;
-        address tokenC;
         address oracle;
+        bytes32 identifier;
+        uint oracleFee;
+        address tokenC;
         uint expireAfterBlocks;
-        uint bufferBlocks;
+        uint donBufferBlocks;   
+        uint donEscalationLimit;
+        uint resolutionBufferBlocks;
     }
 
-    // creator => identifier => tokenC
-    mapping(address => mapping(bytes32 => mapping(address => address))) markets;
-
-    uint public expireAfterBlocks;
-    uint public bufferBlocks;
+    // creator => oracle => identifier
+    mapping(address => mapping(address => mapping(bytes32 => address))) markets;
     DeployParams public deployParams;
 
     constructor(uint _expireAfterBlocks, uint _bufferBlocks){
@@ -28,16 +30,15 @@ contract MarketFactory is Ownable {
         bufferBlocks = _bufferBlocks;
     }
 
-    function createMarket(bytes32 _identifier, address _creator, address _oracle, address _tokenC) external {
-        require(markets[_creator][_identifier][_tokenC] == address(0), 'Market Exists');
-        deployParams = DeployParams({factory: address(this), tokenC: _tokenC, oracle: _oracle, creator: _creator, identifier: _identifier, expireAfterBlocks: expireAfterBlocks, bufferBlocks: bufferBlocks});
-        address marketAddress = address(new Market{salt: keccak256(abi.encode(_creator, _identifier, _tokenC))}());
-        delete deployParams;
-        markets[_creator][_identifier][_tokenC] = marketAddress;
-    }
+    function createMarket(address _creator, address _oracle, bytes32 _identifier) external {
+        require(markets[_creator][_oracle][_identifier] == address(0), 'Market Exists');
 
-    function setExpireAfterBlock(uint _expireAfterBlocks) external onlyOwner {
-        require(_expireAfterBlocks > 0);
-        expireAfterBlocks = _expireAfterBlocks;
+        uint _oracleFee; _expireAfterBlocks; _resolutionBufferBlocks; _donBufferBlocks; _donEscalationLimit;
+        address _tokenC;
+        (_oracleFee, _tokenC, _expireAfterBlocks, _resolutionBufferBlocks, _donBufferBlocks, _donEscalationLimit) = IModerationCommitte(_oracle).getMarketParams();
+        deployParams = DeployParams({factory: address(this), creator: _creator, oracle: _oracle, identifier: _identifier, oracleFee: _oracleFee, token: _tokenC, expireAfterBlocks: _expireAfterBlocks, donBufferBlocks: _donBufferBlocks, donEscalationLimit: _donEscalationLimit, resolutionBufferBlocks: _resolutionBufferBlocks});
+        address marketAddress = address(new Market{salt: keccak256(abi.encode())}());
+        delete deployParams;
+        markets[_creator][_oracle][_identifier] = marketAddress;
     }
 }
