@@ -4,12 +4,17 @@ import './OutcomeToken.sol';
 import './libraries/SafeMath.sol';
 import './MarketFactory.sol';
 
+// add fee for market creator
+// add fee for 
+
 contract Market {
     using SafeMath for uint;
 
     enum Stages {
         MarketCreated,
         MarketFunded,
+        MarketBuffer,
+        MarketResolve,
         MarketClosed
     }
 
@@ -25,16 +30,56 @@ contract Market {
     address public immutable oracle;
 
     bytes32 public immutable identifier;
+    uint public immutable expireByBlock;
+    uint public bufferEndsByBlock;
+    uint public bufferBlocks;
+    uint public escalationBufferBlocks;
+    uint public donCountLimit;
+
     address public creator;
 
     uint public outcome = 2;
-
     Stages public stage;
 
+    uint256 reserveDoN0;
+    uint256 reserveDoN1;
+    uint public lastOutcomeStaked;
+    uint public lastOutcomeAmountStaked;
+    uint public donCount;
+    // 0 or 1 => staker => amount
+    mapping(bool => mapping(address => uint256)) stakes;
+    address arbitratorCaller;
+
+
+
+    modifier isMarketStage(Stages _stage) {
+        if (stage == Stages.MarketResolve){
+            require(_stage == Stages.MarketResolve);
+            _;
+            return;
+        }
+        if (block.number >= expireByBlock){
+            stage = Stages.MarketBuffer;
+        }
+        if (block.number >= bufferEndsByBlock){
+            stage = Stages.MarketClosed;
+        }
+        require(stage == _stage);
+        _;
+    }
+
+    // don period
+    // implement bond 
+    // implement bon
+    //
+
     constructor(){
-        (factory, creator, identifier, tokenC, oracle) = MarketFactory(msg.sender).deployParams();
+        uint expireAfterBlocks;
+        (factory, creator, identifier, tokenC, oracle, expireAfterBlocks, bufferBlocks) = MarketFactory(msg.sender).deployParams();
         token0 = address(new OutcomeToken());
         token1 = address(new OutcomeToken());
+        expireByBlock = block.number.add(expireAfterBlocks);
+        bufferEndsByBlock = expireByBlock + bufferBlocks;
     }
 
     function getReserves() external view returns (uint _reserve0, uint _reserve1){
@@ -47,9 +92,7 @@ contract Market {
         _token1 = token1;
     }
 
-    function fund() external {
-        require(stage == Stages.MarketCreated);
-
+    function fund() external isMarketStage(Stages.MarketCreated) {
         uint balance = IERC20(tokenC).balanceOf(address(this));
         uint amount = balance.sub(reserveC);
         require(amount > 0, 'Funding amount zero');
@@ -62,7 +105,7 @@ contract Market {
         stage = Stages.MarketFunded;
     }
     
-    function buy(uint amount0, uint amount1) external {
+    function buy(uint amount0, uint amount1) external isMarketStage(Stages.MarketFunded) {
         require(stage == Stages.MarketFunded);
 
         uint balance = IERC20(tokenC).balanceOf(address(this));
@@ -86,7 +129,7 @@ contract Market {
         reserveC = reserveC.add(amount);
     }   
 
-    function sell(uint amount) external {
+    function sell(uint amount) external isMarketStage(Stages.MarketFunded) {
         require(stage == Stages.MarketFunded);
 
         IERC20(tokenC).transfer(msg.sender, amount);
@@ -106,8 +149,7 @@ contract Market {
         reserveC = reserveC.sub(amount);
     }
 
-    function redeemWinning(uint amount) external {
-        require(stage == Stages.MarketClosed);
+    function redeemWinning(uint amount) external isMarketStage(Stages.MarketClosed) {
 
         IERC20(tokenC).transfer(msg.sender, amount);
 
@@ -129,7 +171,70 @@ contract Market {
         require(amount == winnings);
     }
 
-    function setOutcome(uint _outcome) external {
+    function stakeOutcome(uint _for) external isMarketStage(Stages.MarketBuffer) {
+        require (_for < 2);
+
+        uint balance = IERC20(tokenC).balanceOf(address(this));
+        uint amount = balance.sub(reserveDoN0.add(reserveDoN1));
+        if (_for == 0) {
+            stakes[false][msg.sender] = amount;
+            reserveDoN0 = reserveDoN0.add(amount);
+        }
+        if (_for == 1) {
+            stakes[true][msg.sender] = amount;
+            reserveDoN1 = reserveDoN1.add(amount);
+        }
+
+        if (lastOutcomeAmountStaked != 0) require(lastOutcomeAmountStaked.mul(2) == amount);
+        lastOutcomeAmountStaked = amount;
+        lastOutcomeStaked = _for;
+        donCount += 1;
+        bufferEndsByBlock = escalationBufferBlocks + block.number;
+    }
+
+    function redeemStake(uint _for) external isMarketStage(Stages.MarketClosed) {
+        // if arb not called, then
+        //     amount is retieved
+
+        // else
+        //     amount is retieved
+        //     if (amount == lastOutcomeAmountStaked) then
+        //         send the money (arb caller lost)
+        //     else
+        //         don't send money
+
+        // haven't taken into account that market isn't resolved
+        require(outcome < 3 && _for < 2);
+        uint amount;
+        if (_for == 0) amount = stakes[false][msg.sender];
+        if (_for == 1) amount = stakes[true][msg.sender];
+
+        uint winnings;
+        if (outcome == 0 && _for == 0) {
+            if (amount == lastOutcomeAmountStaked) winnings = winnings.add(reserveDoN1);
+            winnings = winnings.add(amount);
+        } else if (outcome == 1 && _for == 0) {
+            if (amount == lastOutcomeAmountStaked) winnings = winnings.add(reserveDoN0);
+            winnings = winnings.add(amount);
+        } else {
+            winnings = amount;
+        }
+
+        IERC20(tokenC).transfer(msg.sender, winnings);
+    }
+
+    // function redeemWinningsArbCaller() {
+    //     // only wins if lastOutcome stake isn't the final outcome
+    // }
+
+    function callArbitrator() external isMarketStage(Stages.MarketBuffer) {
+        // get the amount   
+        // transfer to oracle
+        // check amount == fee amount
+        // set market to resolve
+    }
+
+    function setOutcome(uint _outcome) external isMarketStage(Stages.MarketResolve) {
         require(msg.sender == oracle);
         require(outcome < 3);
         outcome = _outcome;
