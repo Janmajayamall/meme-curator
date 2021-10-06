@@ -36,7 +36,8 @@ contract Market {
     uint256 public reserveDoN0;
     uint256 public reserveDoN1;
     uint public lastOutcomeStaked = 2;
-    uint public lastOutcomeAmountStaked;
+    uint public lastAmountStaked0;
+    uint public lastAmountStaked1;
     uint public donEscalationCount;
     uint public donEscalationLimit;
     uint public donBufferEndsAtBlock;
@@ -219,52 +220,63 @@ contract Market {
 
     function stakeOutcome(uint _for, address to) external isMarketBuffer {
         (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1, address _tokenC) = getReservesTokenC(); 
+        uint _lastAmountStaked0 = lastAmountStaked0;
+        uint _lastAmountStaked1 = lastAmountStaked1;
 
         uint balance = IERC20(_tokenC).balanceOf(address(this));
         uint amount = balance - (_reserveDoN0 + _reserveDoN1 + _reserveC);
 
         stakes[_for][to] += amount;
-        if (_for == 0) reserveDoN0 += amount;
-        if (_for == 1) reserveDoN1 += amount;
-
-        if (lastOutcomeAmountStaked != 0) require(lastOutcomeAmountStaked.mul(2) == amount);
-        lastOutcomeAmountStaked = amount;
+        if (_for == 0) {
+            reserveDoN0 += amount;
+            lastAmountStaked0 = amount;
+        }
+        if (_for == 1) {
+            reserveDoN1 += amount;
+            lastAmountStaked1 = amount;
+        } 
         lastOutcomeStaked = _for;
         donEscalationCount += 1;
         donBufferEndsAtBlock = donBufferBlocks + block.number;
 
-        require(lastOutcomeAmountStaked != 0);
+        require(_lastAmountStaked1.mul(2) <= amount);
+        require(_lastAmountStaked0.mul(2) <= amount);
+        require(amount != 0);
         require(_for < 2);
     }
 
     function redeemStake(uint _for) external isMarketClosed {
-        
-        uint amount = stakes[_for][msg.sender];
-        stakes[_for][msg.sender] = 0;
-        if (_for == 0) {
-            reserveDoN0 -= amount;
-        }
-        if (_for == 1) {
-            reserveDoN1 -= amount;
-        }
+        uint _outcome = outcome;
+        uint _reserveDoN0 = reserveDoN0;
+        uint _reserveDoN1 = reserveDoN1;
 
-        uint winnings;
-        if (outcome == _for) {
-            if (amount == lastOutcomeAmountStaked) {
-                winnings += reserveDoN1;
+        uint amount;
+        if (_outcome == 2){
+            amount += stakes[_for][msg.sender];
+            stakes[_for][msg.sender] = 0;
+            if (_for == 0) _reserveDoN0 -= amount;
+            if (_for == 1) _reserveDoN1 -= amount;
+        }else {
+            amount = stakes[_outcome][msg.sender];
+            stakes[_outcome][msg.sender] = 0;
+            if (_outcome == 0) {
+                _reserveDoN0 -= amount;
+            }else if (_outcome == 1) {
+                _reserveDoN1 -= amount;
             }
-            winnings += amount;
-        } else if (outcome == 1 && _for == 1) {
-            if (amount == lastOutcomeAmountStaked){
-                winnings += reserveDoN0;
-            } 
-            winnings += amount;
-        } else if (outcome == 2){
-            winnings = amount;
+            if (amount == lastAmountStaked0){
+                amount += _reserveDoN1;
+                _reserveDoN1 = 0;
+            }else if (amount == lastAmountStaked1){
+                amount += _reserveDoN0;
+                _reserveDoN0 = 0;
+            }
         }
 
-        IERC20(tokenC).transfer(msg.sender, winnings);
-        require(_for < 2);
+        IERC20(tokenC).transfer(msg.sender, amount);
+
+        reserveDoN0 = _reserveDoN0;
+        reserveDoN1 = _reserveDoN1;
     }
 
     function setOutcome(uint _outcome) external isMarketResolve {
@@ -289,5 +301,16 @@ contract Market {
         outcome = _outcome;
         stage = Stages.MarketClosed;
         require(msg.sender == _oracle);
+    }
+
+    function trimeStake(address to) external isMarketClose {
+        uint _outcome = outcome;
+        if (_outcome == 0 && lastAmountStaked0 == 0){
+            IERC20(tokenC).transfer(to, reserveDoN1);
+            reserveDoN1 = 0;
+        }else if (_outcome == 1 && lastAmountStaked1 == 0){
+            IERC20(tokenC).transfer(to, reserveDoN0);
+            reserveDoN0 = 0;
+        }
     }
 }
