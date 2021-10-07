@@ -12,7 +12,8 @@ contract MarketFactory is Ownable {
         address creator;
         address oracle;
         bytes32 identifier;
-        uint oracleFee;
+        uint oracleFeeNumerator;
+        uint oracleFeeDenominator;
         address tokenC;
         uint expireAfterBlocks;
         uint donBufferBlocks;   
@@ -33,10 +34,10 @@ contract MarketFactory is Ownable {
     function createMarket(address _creator, address _oracle, bytes32 _identifier) external {
         require(markets[_creator][_oracle][_identifier] == address(0), 'Market Exists');
 
-        uint _oracleFee; _expireAfterBlocks; _resolutionBufferBlocks; _donBufferBlocks; _donEscalationLimit;
+        uint _oracleFeeNumerator; _oracleFeeDenominator; _expireAfterBlocks; _resolutionBufferBlocks; _donBufferBlocks; _donEscalationLimit;
         address _tokenC;
-        (_oracleFee, _tokenC, _expireAfterBlocks, _resolutionBufferBlocks, _donBufferBlocks, _donEscalationLimit) = IModerationCommitte(_oracle).getMarketParams();
-        deployParams = DeployParams({factory: address(this), creator: _creator, oracle: _oracle, identifier: _identifier, oracleFee: _oracleFee, token: _tokenC, expireAfterBlocks: _expireAfterBlocks, donBufferBlocks: _donBufferBlocks, donEscalationLimit: _donEscalationLimit, resolutionBufferBlocks: _resolutionBufferBlocks});
+        (_oracleFeeNumerator, _oracleFeeDenominator, _tokenC, _expireAfterBlocks, _resolutionBufferBlocks, _donBufferBlocks, _donEscalationLimit) = IModerationCommitte(_oracle).getMarketParams();
+        deployParams = DeployParams({factory: address(this), creator: _creator, oracle: _oracle, identifier: _identifier, oracleFeeNumerator: _oracleFeeNumerator, oracleFeeDenominator: _oracleFeeDenominator, token: _tokenC, expireAfterBlocks: _expireAfterBlocks, donBufferBlocks: _donBufferBlocks, donEscalationLimit: _donEscalationLimit, resolutionBufferBlocks: _resolutionBufferBlocks});
         address marketAddress = address(new Market{salt: keccak256(abi.encode())}());
         delete deployParams;
         markets[_creator][_oracle][_identifier] = marketAddress;

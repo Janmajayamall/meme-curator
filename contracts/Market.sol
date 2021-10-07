@@ -1,4 +1,5 @@
 pragma solidity ^0.8.0;
+pragma solidity ^0.8.0;
 
 import './OutcomeToken.sol';
 import './libraries/SafeMath.sol';
@@ -49,8 +50,8 @@ contract Market {
     address public immutable oracle;
     uint public resolutionBufferBlocks;
     uint public resolutionEndsAtBlock;
-    uint public immutable oracleFee;
-    uint public arbitrationFee;
+    uint public immutable oracleFeeNumerator;
+    uint public immutable oracleFeeDenominator;
 
     modifier isMarketCreated() {
         require (stage == Stages.MarketCreated);
@@ -101,7 +102,7 @@ contract Market {
 
     constructor(){
         uint expireAfterBlocks;
-        (factory, creator, oracle, identifier, oracleFee, tokenC, expireAfterBlocks, donBufferBlocks, donEscalationLimit, resolutionBufferBlocks) = MarketFactory(msg.sender).deployParams();
+        (factory, creator, oracle, identifier, oracleFeeNumerator, oracleFeeDenominator, tokenC, expireAfterBlocks, donBufferBlocks, donEscalationLimit, resolutionBufferBlocks) = MarketFactory(msg.sender).deployParams();
         token0 = address(new OutcomeToken());
         token1 = address(new OutcomeToken());
         expireAtBlock = block.number.add(expireAfterBlocks);
@@ -113,7 +114,12 @@ contract Market {
         _reserveDoN1 = reserveDoN1;
     }
 
-    function tokensAddresses() external view returns (address _token0, address _token1){
+    function getReservesOTokens() public view returns (uint _reserve0, uint _reserve1){
+        _reserve0 = reserve0;
+        _reserve1 = reserve1;
+    }
+
+    function getAddressOTokens() public view returns (address _token0, address _token1){
         _token0 = token0;
         _token1 = token1;
     }
@@ -140,15 +146,17 @@ contract Market {
 
     function fund() external isMarketCreated {
         uint balance = IERC20(tokenC).balanceOf(address(this));
-        uint amount = balance.sub(reserveC);
-        require(amount > 0, 'Funding amount zero');
+        uint amount = balance - reserveC;
+        
         OutcomeToken(token0).issue(address(this), amount);
         OutcomeToken(token1).issue(address(this), amount);   
-        reserve0 = reserve0.add(amount);
-        reserve1 = reserve1.add(amount);
-        reserveC = reserveC.add(amount);
 
+        reserve0 += amount;
+        reserve1 += amount;
+        reserveC += amount;
         stage = Stages.MarketFunded;
+        
+        require(amount > 0, 'Funding amount zero');
     }
     
     function buy(uint amount0, uint amount1, address to) external isMarketFunded {
@@ -256,7 +264,7 @@ contract Market {
             stakes[_for][msg.sender] = 0;
             if (_for == 0) _reserveDoN0 -= amount;
             if (_for == 1) _reserveDoN1 -= amount;
-        }else {
+        }else if (_outcome < 2) {
             amount = stakes[_outcome][msg.sender];
             stakes[_outcome][msg.sender] = 0;
             if (_outcome == 0) {
@@ -282,17 +290,20 @@ contract Market {
     function setOutcome(uint _outcome) external isMarketResolve {
         require(_outcome < 3);
         
-        uint _oracleFee = oracleFee;
+        uint _oracleFeeNumerator = oracleFeeNumerator;
+        uint _oracleFeeDenominator = oracleFeeDenominator;
         address _oracle = oracle;
 
-        if (_oracleFee != 0 && _outcome != 2){
+        if (_outcome != 2 && oracleFeeNumerator != 0 && oracleFeeDenominator >= oracleFeeNumerator){
             uint fee;
-            if (_outcome == 0) {
-                fee = reserveDoN1.mul(_oracleFee).div(100);
+            uint _reserveDoN1 = reserveDoN1;
+            uint _reserveDoN0 = reserveDoN0;
+            if (_outcome == 0 && _reserveDoN1 != 0) {
+                fee = _reserveDoN1.mul(_oracleFeeNumerator).div(_oracleFeeDenominator);
                 reserveDoN1 -= fee;
             }
-            if (_outcome == 1) {
-                fee = reserveDoN0.mul(_oracleFee).div(100);
+            if (_outcome == 1 && _reserveDoN0 != 0) {
+                fee = _reserveDoN0.mul(_oracleFeeNumerator).div(_oracleFeeDenominator);
                 reserveDoN0 -= fee;
             }
             IERC20(tokenC).transfer(_oracle, fee);
@@ -303,7 +314,12 @@ contract Market {
         require(msg.sender == _oracle);
     }
 
-    function trimeStake(address to) external isMarketClose {
+    /// @notice Explain to an end user what this does
+    /// @dev Explain to a developer any extra details
+    /// @param Documents a parameter just like in doxygen (must be followed by parameter name)
+    /// @return Documents the return variables of a contract’s function state variable
+    /// @inheritdoc	Copies all missing tags from the base function (must be followed by the contract name)
+    function trimStake(address to) external isMarketClose {
         uint _outcome = outcome;
         if (_outcome == 0 && lastAmountStaked0 == 0){
             IERC20(tokenC).transfer(to, reserveDoN1);
