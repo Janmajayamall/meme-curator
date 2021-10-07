@@ -2,6 +2,7 @@ pragma solidity ^0.8.0;
 
 import './libraries/TransferHelper.sol';
 import './Market.sol';
+import './libraries/Math.sol';
 
 contract MarketRouter {
     address public immutable factory;
@@ -10,18 +11,6 @@ contract MarketRouter {
 
     constructor(address _factory) {
         factory = _factory;
-    }
-
-    /// @notice Solves quadratic equations
-    /// @dev Should only be called for equations with real roots (eg. 10 = (4 + x)*(5+x))
-    /// @param a a in qudratic formula
-    /// @param b b in qudratic formula
-    /// @param c c in qudratic formula
-    /// @return 2 possible values of x
-    function quadraticEq(int a, int b, int c) internal returns (int val1, int val2) {
-        int underRoot = (b**2)-((4*a)*c);
-        val1 = ((-1*b) + underRoot) / (2*a);
-        val2 = ((-1*b) - underRoot) / (2*a);
     }
 
     /// @notice Contract address of a prediction market
@@ -49,7 +38,7 @@ contract MarketRouter {
         int y = int(_reserve1 - amountOutToken1);
         int b = x + y;
         int c = (x*y)-rP;
-        (int val1, int val2) = quadraticEq(1, b, c);
+        (int val1, int val2) = Math.quadraticEq(1, b, c);
         uint amount;
         if (val1 > 0){
             amount = uint(val1);
@@ -106,7 +95,7 @@ contract MarketRouter {
         int y = int(_reserve1 + amountOutToken1);
         int b = (-1 * (x + y));
         int c = (x*y)-rP;
-        (int val1, int val2) = quadraticEq(1, b, c);
+        (int val1, int val2) = Math.quadraticEq(1, b, c);
         uint amountOutTokenC;
         if (val1 <= x && val1 <= y){
             amountOutTokenC = uint(val1);
