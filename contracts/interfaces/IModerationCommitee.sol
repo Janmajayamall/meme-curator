@@ -1,10 +1,6 @@
-pragma solidity ^0.0.8;
+pragma solidity ^0.8.0;
 
 interface IModerationCommitte {
-    // 1. get fee 
-    // 2. get collateral token address
-    // 3. get escalation limit
-    // 4. resolution time
     struct MarketParams {
         uint feeNumerator;
         uint feeDenominator;
@@ -20,10 +16,10 @@ interface IModerationCommitte {
         uint denominator;
     }
 
-    function getFee() view returns (uint);
-    function getTokenC() view returns (address);
-    function getDoNEscalationLimit() view returns (uint);
-    function getResolutionBuffer() view returns (uint);
-    function getDoNBuffer() view returns (uint);
-    function getMarketParams() view returns (uint, uint, address, uint, uint, uint, uint);
+    function getFee() external view returns (uint);
+    function getTokenC() external returns (address);
+    function getDoNEscalationLimit() external view returns (uint);
+    function getResolutionBuffer() external view returns (uint);
+    function getDoNBuffer() external view returns (uint);
+    function getMarketParams() external view returns (uint, uint, address, uint, uint, uint, uint);
 }

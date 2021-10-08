@@ -55,6 +55,7 @@ contract Market {
 
     modifier isMarketCreated() {
         require (stage == Stages.MarketCreated);
+        _;
     }
 
     modifier isMarketFunded(){
@@ -98,6 +99,7 @@ contract Market {
 
     modifier isMarketClosed() {
         require (stage == Stages.MarketClosed);
+        _;
     }
 
     constructor(){
@@ -205,25 +207,24 @@ contract Market {
         reserveC -= amount;
     }
 
-    function redeemWinning(address to) external isMarketClosed {
-        uint _outcome = outcome;
-
-        uint balance0 = OutcomeToken(token0).balanceOf(address(this));
-        uint balance1 = OutcomeToken(token1).balanceOf(address(this));
-        uint amount0 = balance0 - reserve0;
-        uint amount1 = balance1 - reserve1;
-
-        uint winnings;
-        if (_outcome == 0){
-            winnings += amount0;
-        }else if(_outcome == 1){
-            winnings += amount1;
-        }else if (_outcome == 2){
-            winnings += amount0.div(2);
-            winnings += amount1.div(2);
+    function redeemWinning(uint _for, address to) external isMarketClosed {
+        uint amount;
+        if (_for == 0){
+            uint balance = OutcomeToken(token0).balanceOf(address(this));
+            amount = balance - reserve0;
+        }else if (_for == 1){
+            uint balance = OutcomeToken(token1).balanceOf(address(this));
+            amount = balance - reserve1;
         }
 
-        IERC20(tokenC).transfer(msg.sender, winnings);
+        uint _outcome = outcome;
+        if (_outcome == _for){
+            IERC20(tokenC).transfer(to, amount);
+        }else {
+            IERC20(tokenC).transfer(to, amount.div(2));
+        }
+
+        require(_for < 2);
     }
 
     function stakeOutcome(uint _for, address to) external isMarketBuffer {

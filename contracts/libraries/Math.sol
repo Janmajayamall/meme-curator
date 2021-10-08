@@ -1,21 +1,61 @@
 pragma solidity ^0.8.0;
 
 library Math {
-    
-    /// @notice Solves quadratic equations
-    /// @dev Should only be called for equations with real roots (eg. 10 = (4 + x)*(5+x))
-    /// @param a a in qudratic formula
-    /// @param b b in qudratic formula
-    /// @param c c in qudratic formula
-    function quadraticEq(int a, int b, int c) internal pure returns (int val1, int val2) {
-        int underRoot = int(sqrt(uint((b**2)-((4*a)*c))));
-        val1 = ((-1*b) + underRoot) / (2*a);
-        val2 = ((-1*b) - underRoot) / (2*a);
+    function isValidAmountCRoot(uint a0, uint a1, uint r0, uint r1, uint a, bool buy) internal pure returns (bool){
+        if (buy == true){
+            if((r0 + a - a0) > 0 && (r1 + a - a1) > 0){
+                return true;
+            }
+            return false;
+        }else{
+            if((r0 + a0 - a) > 0 && (r1 + a1 - a) > 0){
+                return true;
+            }
+            return false;
+        }
+    }
+
+    function getAmountCToBuyTokens(uint a0, uint a1, uint r0, uint r1) internal pure returns (uint a){
+        uint b;
+        uint sign;
+        if ((r0 + r1) >= (a0 + a1)){
+            b = (r0 + r1) - (a0 + a1);
+            sign = 1;
+        }else {
+            b = (a0 + a1) - (r0 + r1);
+            sign = 0;
+        }
+        uint b2 = b**2;
+        uint rootVal = b2 + (4 * r0 * a1) + (4 * r1 * a0) - (4 * a0 * a1);
+        rootVal = sqrt(rootVal);
+        if (sign == 0){
+            a = ((b + rootVal) / 2);
+            if (!isValidAmountCRoot(a0, a1, r0, r1, a, true)){
+                require(b >= rootVal, 'ERR rootVal>b sign=0');
+                a = ((b - rootVal)/2);
+            }
+        }else {
+            require(rootVal >= b, 'ERR b>rootVal sign=1');
+            a = ((rootVal - b)/2);
+        }
+    }
+
+    function getAmountCBySellTokens(uint a0, uint a1, uint r0, uint r1) internal pure returns (uint a) {
+        uint nveB = r0 + a0 + r1 + a1;
+        uint c = (r0*a1) + (r1*a0) + (a0*a1);
+        uint rootVal = ((nveB**2) - (4 * c));
+        rootVal = sqrt(rootVal);
+        a = ((nveB+rootVal)/2);
+        if (!isValidAmountCRoot(a0, a1, r0, r1, a, false)){
+            require(nveB >= rootVal, 'ERR');
+            a = (nveB - rootVal)/2;
+        }
     }
 
     /// @notice computes square roots using the babylonian method - https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method
-    // Taken from - https://github.com/Uniswap/solidity-lib/blob/master/contracts/libraries/Babylonian.sol
     function sqrt(uint256 x) internal pure returns (uint256) {
+        // Taken from - https://github.com/Uniswap/solidity-lib/blob/master/contracts/libraries/Babylonian.sol
+
         if (x == 0) return 0;
         // this block is equivalent to r = uint256(1) << (BitMath.mostSignificantBit(x) / 2);
         // however that code costs significantly more gas
