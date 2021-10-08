@@ -62,14 +62,14 @@ contract MarketRouter {
     /// @notice Sell exact amountInToken0 & amountInToken1 for collateral tokens >= amountOutTokenCMin
     function sellExactTokensForMinCTokens(uint amountInToken0, uint amountInToken1, uint amountOutTokenCMin, address creator, address oracle, bytes32 identifier) external view {
         address market =  getMarketAddress(creator, oracle, identifier);
-        (address _token0, address _token1) = Market(market).getAddressOTokens();
+        (address token0, address token1) = Market(market).getAddressOTokens();
         (uint _reserve0, uint _reserve1) = Market(market).getReservesOTokens();
 
         uint amountOutTokenC = Math.getAmountCToSellTokens(amountInToken0, amountInToken1, _reserve0, _reserve1);
         require(amountOutTokenC >= amountOutTokenCMin);
 
-        TransferHelper.safeTransfer(_token0, market, amountInToken0);
-        TransferHelper.safeTransfer(_token1, market, amountInToken1);
+        TransferHelper.safeTransfer(token0, market, amountInToken0);
+        TransferHelper.safeTransfer(token1, market, amountInToken1);
         Market(market).sell(amountOutTokenC, msg.sender);
     }
 
@@ -96,4 +96,12 @@ contract MarketRouter {
         TransferHelper.safeTransferFrom(token1, msg.sender, market, a1);
         Market(market).sell(amountOutTokenC, msg.sender);
     }
+
+    function stakeForOutcome(){
+        // check whether stake is feasible
+        // stake it
+    }
+
+    function redeemWinning(){}
+
 }

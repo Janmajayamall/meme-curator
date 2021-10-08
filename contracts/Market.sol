@@ -59,46 +59,54 @@ contract Market {
     }
 
     modifier isMarketFunded(){
-        require (stage == Stages.MarketFunded);
-
-        if (block.number >= expireAtBlock){
-            stage = Stages.MarketBuffer;
-            donBufferEndsAtBlock = block.number + donBufferBlocks;
-        }
-
-        require (stage == Stages.MarketFunded);
+        // market is only funded till block number < expireAtBlock
+        require (stage == Stages.MarketFunded && block.number < expireAtBlock);
         _;
     }
 
     modifier isMarketBuffer(){
-        require (stage == Stages.MarketBuffer);
+        Stages _stage = stage;
 
-        if (block.number < donBufferEndsAtBlock && donEscalationLimit <= donEscalationCount){
-            // change to market resolve & set block number for resolution expiry
-            resolutionEndsAtBlock = block.number + resolutionBufferBlocks;
-            stage = Stages.MarketResolve;
-        }else if (block.number >= donBufferEndsAtBlock){
-            setOutcomeByExpiry();
+        // if stage value is MarketFunded & market time expired & initial (set in  constructor) don buffer time hasn't expired, then change state to MarketBuffer
+        if (_stage == Stages.MarketFunded && block.number >= expireAtBlock && block.number < donBufferEndsAtBlock){
+            _stage = Stages.MarketBuffer;
+            stage = _stage;
+            donBufferEndsAtBlock = block.number + donBufferBlocks;
         }
 
-        require (stage == Stages.MarketBuffer);
+        // only when stage is MarketBuffer && escalation limit hasn't been reached && buffer period hasn't expired
+        require (_stage == Stages.MarketBuffer && donEscalationLimit > donEscalationCount && block.number < donBufferEndsAtBlock);
         _;
     }
 
     modifier isMarketResolve(){
-        require (stage == Stages.MarketResolve);
+        Stages _stage = stage;
 
-        if (block.number >= resolutionEndsAtBlock){
-            // close the market & set outcome to last staked outcome
-            setOutcomeByExpiry();
+        // if escalation limit has been reached & stage is MarketBuffer, then change state to MarketResolve
+        if (_stage == Stage.MarketBuffer &&  block.number < donBufferEndsAtBlock && donEscalationLimit <= donEscalationCount){
+            // change to market resolve & set block number for resolution expiry
+            resolutionEndsAtBlock = block.number + resolutionBufferBlocks;
+            _stage = Stages.MarketResolve; 
+            stage = _stage;
         }
 
-        require (stage == Stages.MarketBuffer);
+        // stage should be MarketResolve & resolution time shouldn't have expired
+        require (stage == Stages.MarketResolve && block.number < resolutionEndsAtBlock);
         _;
     }
 
     modifier isMarketClosed() {
-        require (stage == Stages.MarketClosed);
+        Stages _stage = stage;
+
+        // if stage is MarketBuffer & donBuffer expired OR if stage is MarketResolve & resolution time expired
+        if ((_stage != Stages.MarketResolve && block.number >= donBufferEndsAtBlock)
+            || (_stage == Stages.MarketResolve && block.number >= resolutionEndsAtBlock)){
+            setOutcomeByExpiry();
+            _stage = Stages.MarketClosed;
+            stage = Stages.MarketClosed;
+        }
+
+        require (_stage == Stages.MarketClosed);
         _;
     }
 
@@ -108,6 +116,7 @@ contract Market {
         token0 = address(new OutcomeToken());
         token1 = address(new OutcomeToken());
         expireAtBlock = block.number.add(expireAfterBlocks);
+        donBufferEndsAtBlock = expireAtBlock + donBufferBlocks;
     }
 
     function getReservesTokenC() public view returns (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1){
@@ -143,7 +152,6 @@ contract Market {
                 outcome = 2;
             }
         }
-        stage = Stages.MarketClosed;
     }
 
     function fund() external isMarketCreated {
@@ -247,6 +255,13 @@ contract Market {
         lastOutcomeStaked = _for;
         donEscalationCount += 1;
         donBufferEndsAtBlock = donBufferBlocks + block.number;
+
+        // update stage to MarketResolve, if don limit exceeded
+        if (donEscalationLimit <= donEscalationCount){
+            // change to market resolve & set block number for resolution expiry
+            resolutionEndsAtBlock = block.number + resolutionBufferBlocks;
+            stage = Stages.MarketResolve;
+        }
 
         require(_lastAmountStaked1.mul(2) <= amount);
         require(_lastAmountStaked0.mul(2) <= amount);
