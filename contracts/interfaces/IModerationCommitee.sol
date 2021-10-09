@@ -16,10 +16,10 @@ interface IModerationCommitte {
         uint denominator;
     }
 
-    function getFee() external view returns (uint);
-    function getTokenC() external returns (address);
-    function getDoNEscalationLimit() external view returns (uint);
-    function getResolutionBuffer() external view returns (uint);
-    function getDoNBuffer() external view returns (uint);
-    function getMarketParams() external view returns (uint, uint, address, uint, uint, uint, uint);
+    // function getFee() external view returns (uint, uint);
+    // function getTokenC() external returns (address);
+    // function getDoNEscalationLimit() external view returns (uint);
+    // function getResolutionBuffer() external view returns (uint);
+    // function getDoNBuffer() external view returns (uint);
+    function getMarketParams() external view returns (bool, uint, uint, address, uint, uint, uint, uint);
 }

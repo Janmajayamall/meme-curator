@@ -97,11 +97,20 @@ contract MarketRouter {
         Market(market).sell(amountOutTokenC, msg.sender);
     }
 
-    function stakeForOutcome(){
-        // check whether stake is feasible
-        // stake it
+    /// @notice Stake amountIn for outcome _for 
+    function stakeForOutcome(uint _for, uint amountIn, address creator, address oracle, bytes32 identifier) external {
+        require(_for < 2);
+        address market =  getMarketAddress(creator, oracle, identifier);
+        address tokenC = Market(market).tokenC();
+        uint[2] memory stakes = Market(market).getOutcomeStakes();
+        require(stakes[_for]*2 == amountIn);
+        TransferHelper.safeTransferFrom(tokenC, msg.sender, market, amountIn);
+        Market(market).stakeOutcome(_for, msg.sender);
     }
-
-    function redeemWinning(){}
-
 }
+
+// finish state transistions
+// write router funtions for staking
+// develop the mmultisig
+// staart testing
+// fill up the collaboration form

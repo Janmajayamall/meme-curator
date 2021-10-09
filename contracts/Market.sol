@@ -43,7 +43,7 @@ contract Market {
     uint public donEscalationLimit;
     uint public donBufferEndsAtBlock;
     uint public donBufferBlocks; 
-    // (0) true (1) -> staker's address => amount
+    // (0) or (1) outcome index -> staker's address => amount
     mapping(address => uint256)[2] stakes;
 
     // final resolution related
@@ -80,16 +80,6 @@ contract Market {
     }
 
     modifier isMarketResolve(){
-        Stages _stage = stage;
-
-        // if escalation limit has been reached & stage is MarketBuffer, then change state to MarketResolve
-        if (_stage == Stage.MarketBuffer &&  block.number < donBufferEndsAtBlock && donEscalationLimit <= donEscalationCount){
-            // change to market resolve & set block number for resolution expiry
-            resolutionEndsAtBlock = block.number + resolutionBufferBlocks;
-            _stage = Stages.MarketResolve; 
-            stage = _stage;
-        }
-
         // stage should be MarketResolve & resolution time shouldn't have expired
         require (stage == Stages.MarketResolve && block.number < resolutionEndsAtBlock);
         _;
@@ -170,8 +160,11 @@ contract Market {
     }
     
     function buy(uint amount0, uint amount1, address to) external isMarketFunded {
-        (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1, address _tokenC) = getReservesTokenC();
-        (uint _reserve0, uint _reserve1, address _token0, address _token1) = getReservesTokenO();
+        address _tokenC = tokenC;
+        address _token0 = token0;
+        address _token1 = token1;
+        (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1) = getReservesTokenC();
+        (uint _reserve0, uint _reserve1) = getReservesOTokens();
 
         uint balance = IERC20(tokenC).balanceOf(address(this));
         uint amount = balance - (_reserveC + _reserveDoN0 + _reserveDoN1);
@@ -184,10 +177,9 @@ contract Market {
         if (amount0 > 0) OutcomeToken(_token0).transfer(to, amount0);
         if (amount1 > 0) OutcomeToken(_token1).transfer(to, amount1);
 
-        uint rP = _reserve0.mul(_reserve1);
         uint _reserve0New = (_reserve0 + amount) - amount0;
         uint _reserve1New = (_reserve1 + amount) - amount1;
-        require(rP == _reserve0New.mul(_reserve1New));
+        require(_reserve0.mul(_reserve1) == _reserve0New.mul(_reserve1New));
 
         reserve0 = _reserve0New;
         reserve1 = _reserve1New;
@@ -196,19 +188,18 @@ contract Market {
 
     function sell(uint amount, address to) external isMarketFunded {
         address _tokenC = tokenC;
-        (uint _reserve0, uint _reserve1, address _token0, address _token1) = getReservesTokenO();
+        (uint _reserve0, uint _reserve1) = getReservesOTokens();
 
         IERC20(_tokenC).transfer(to, amount);
 
-        uint balance0 = OutcomeToken(_token0).balanceOf(address(this));
-        uint balance1 = OutcomeToken(_token1).balanceOf(address(this));
+        uint balance0 = OutcomeToken(token0).balanceOf(address(this));
+        uint balance1 = OutcomeToken(token1).balanceOf(address(this));
         uint amount0 = balance0 - _reserve0;
         uint amount1 = balance1 - _reserve1;
 
-        uint rP = _reserve0.mul(_reserve1);
         uint _reserve0New = (_reserve0 + amount0) - amount;
         uint _reserve1New = (_reserve1 + amount1) - amount;
-        require(rP == _reserve0New.mul(_reserve1New));
+        require(_reserve0.mul(_reserve1) == _reserve0New.mul(_reserve1New));
 
         reserve0 = _reserve0New;
         reserve1 = _reserve1New;
@@ -236,11 +227,11 @@ contract Market {
     }
 
     function stakeOutcome(uint _for, address to) external isMarketBuffer {
-        (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1, address _tokenC) = getReservesTokenC(); 
+        (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1) = getReservesTokenC(); 
         uint _lastAmountStaked0 = lastAmountStaked0;
         uint _lastAmountStaked1 = lastAmountStaked1;
 
-        uint balance = IERC20(_tokenC).balanceOf(address(this));
+        uint balance = IERC20(tokenC).balanceOf(address(this));
         uint amount = balance - (_reserveDoN0 + _reserveDoN1 + _reserveC);
 
         stakes[_for][to] += amount;
@@ -330,7 +321,7 @@ contract Market {
         require(msg.sender == _oracle);
     }
 
-    function trimStake(address to) external isMarketClose {
+    function trimStake(address to) external isMarketClosed {
         uint _outcome = outcome;
         if (_outcome == 0 && lastAmountStaked0 == 0){
             IERC20(tokenC).transfer(to, reserveDoN1);
