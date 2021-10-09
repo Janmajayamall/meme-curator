@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 import './libraries/TransferHelper.sol';
@@ -26,23 +28,23 @@ contract MarketRouter {
     }
 
     /// @notice Buy exact amountOfToken0 & amountOfToken1 with collteral tokens <= amountInCMax
-    function buyExactTokensForMaxCTokens(uint amountOutToken0, uint amountOutToken1, uint amountInCMax, address creator, address oracle, bytes32 identifier) external view {
+    function buyExactTokensForMaxCTokens(uint amountOutToken0, uint amountOutToken1, uint amountInCMax, address creator, address oracle, bytes32 identifier) external {
         address market =  getMarketAddress(creator, oracle, identifier);
-        address tokenC = Market(market).tokeC();
+        address tokenC = Market(market).tokenC();
         (uint _reserve0, uint _reserve1) = Market(market).getReservesOTokens();
         uint amountIn = Math.getAmountCToBuyTokens(amountOutToken0, amountOutToken1, _reserve0, _reserve1);
-        require(amountInCMax >= amount);
-        TransferHelper.safeTransferFrom(tokenC, msg.sender, market, amount);
+        require(amountInCMax >= amountIn);
+        TransferHelper.safeTransferFrom(tokenC, msg.sender, market, amountIn);
         Market(market).buy(amountOutToken0, amountOutToken1, msg.sender);
     }
 
     /// @notice Buy minimum amountOfToken0 & amountOfToken1 with collteral tokens == amountInC. 
     /// fixedTokenIndex - index to token of which amount does not change in reaction to prices 
-    function buyMinTokensForExactCTokens(uint amountOutToken0Min, uint amountOutToken1Min, uint amountInC, uint fixedTokenIndex, address creator, address oracle, bytes32 identifier) external view {
+    function buyMinTokensForExactCTokens(uint amountOutToken0Min, uint amountOutToken1Min, uint amountInC, uint fixedTokenIndex, address creator, address oracle, bytes32 identifier) external {
         require(fixedTokenIndex < 2);
 
         address market =  getMarketAddress(creator, oracle, identifier);
-        address tokenC = Market(market).tokeC();
+        address tokenC = Market(market).tokenC();
         (uint r0, uint r1) = Market(market).getReservesOTokens();
 
         uint a0 = amountOutToken0Min;
@@ -56,16 +58,16 @@ contract MarketRouter {
         require(a0 >= amountOutToken0Min && a1 >= amountOutToken1Min);
 
         TransferHelper.safeTransferFrom(tokenC, msg.sender, market, amountInC);
-        Market(market).buy(a0, a1, to);
+        Market(market).buy(a0, a1, msg.sender);
     }
 
     /// @notice Sell exact amountInToken0 & amountInToken1 for collateral tokens >= amountOutTokenCMin
-    function sellExactTokensForMinCTokens(uint amountInToken0, uint amountInToken1, uint amountOutTokenCMin, address creator, address oracle, bytes32 identifier) external view {
+    function sellExactTokensForMinCTokens(uint amountInToken0, uint amountInToken1, uint amountOutTokenCMin, address creator, address oracle, bytes32 identifier) external {
         address market =  getMarketAddress(creator, oracle, identifier);
         (address token0, address token1) = Market(market).getAddressOTokens();
         (uint _reserve0, uint _reserve1) = Market(market).getReservesOTokens();
 
-        uint amountOutTokenC = Math.getAmountCToSellTokens(amountInToken0, amountInToken1, _reserve0, _reserve1);
+        uint amountOutTokenC = Math.getAmountCBySellTokens(amountInToken0, amountInToken1, _reserve0, _reserve1);
         require(amountOutTokenC >= amountOutTokenCMin);
 
         TransferHelper.safeTransfer(token0, market, amountInToken0);
@@ -75,7 +77,7 @@ contract MarketRouter {
 
     /// @notice Sell maximum of amountInToken0Max & amountInToken1Max for collateral tokens == amountOutTokenC
     /// fixedTokenIndex - index of token of which amount does not change in reaction to prices
-    function sellMaxTokensForExactCTokens(uint amountInToken0Max, uint amountInToken1Max, uint amountOutTokenC, uint fixedTokenIndex, address creator, address oracle, bytes32 identifier) external view {
+    function sellMaxTokensForExactCTokens(uint amountInToken0Max, uint amountInToken1Max, uint amountOutTokenC, uint fixedTokenIndex, address creator, address oracle, bytes32 identifier) external {
         require(fixedTokenIndex < 2);
 
         address market =  getMarketAddress(creator, oracle, identifier);

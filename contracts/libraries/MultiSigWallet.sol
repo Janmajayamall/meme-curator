@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 
@@ -229,7 +231,7 @@ contract MultiSigWallet {
         if (isConfirmed(transactionId)) {
             Transaction storage txn = transactions[transactionId];
             txn.executed = true;
-            (bool success, bytes memory data) = txn.destination.call{value: txn.value}(txn.data);
+            (bool success,) = txn.destination.call{value: txn.value}(txn.data);
             if (success == true){
                 emit Execution(transactionId);
             } else {
@@ -254,6 +256,7 @@ contract MultiSigWallet {
             if (count == required)
                 return true;
         }
+        return false;
     }
 
     /*
@@ -288,6 +291,7 @@ contract MultiSigWallet {
     /// @return count Number of confirmations.
     function getConfirmationCount(uint transactionId)
         public
+        view
         returns (uint count)
     {
         for (uint i=0; i<owners.length; i++)

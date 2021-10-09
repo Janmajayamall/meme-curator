@@ -1,11 +1,12 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 import './Market.sol';
-import "@openzeppelin/contracts/access/Ownable.sol";
 import './interfaces/IModerationCommitee.sol';
 
 
-contract MarketFactory is Ownable {
+contract MarketFactory {
 
     struct DeployParams {
         address factory;
@@ -37,7 +38,7 @@ contract MarketFactory is Ownable {
         address _tokenC;
         (_isActive, _oracleFeeNumerator, _oracleFeeDenominator, _tokenC, _expireAfterBlocks, _resolutionBufferBlocks, _donBufferBlocks, _donEscalationLimit) = IModerationCommitte(_oracle).getMarketParams();
         require(_isActive);
-        deployParams = DeployParams({factory: address(this), creator: _creator, oracle: _oracle, identifier: _identifier, oracleFeeNumerator: _oracleFeeNumerator, oracleFeeDenominator: _oracleFeeDenominator, token: _tokenC, expireAfterBlocks: _expireAfterBlocks, donBufferBlocks: _donBufferBlocks, donEscalationLimit: _donEscalationLimit, resolutionBufferBlocks: _resolutionBufferBlocks});
+        deployParams = DeployParams({factory: address(this), creator: _creator, oracle: _oracle, identifier: _identifier, oracleFeeNumerator: _oracleFeeNumerator, oracleFeeDenominator: _oracleFeeDenominator, tokenC: _tokenC, expireAfterBlocks: _expireAfterBlocks, donBufferBlocks: _donBufferBlocks, donEscalationLimit: _donEscalationLimit, resolutionBufferBlocks: _resolutionBufferBlocks});
         address marketAddress = address(new Market{salt: keccak256(abi.encode(_creator, _oracle, _identifier))}());
         delete deployParams;
         markets[_creator][_oracle][_identifier] = marketAddress;

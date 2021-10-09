@@ -2,7 +2,7 @@
 
 pragma solidity >=0.6.0;
 
-// @notice Take from https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol
+// @notice Taken from https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol
 // helper methods for interacting with ERC20 tokens and sending ETH that do not consistently return true/false
 library TransferHelper {
     function safeApprove(

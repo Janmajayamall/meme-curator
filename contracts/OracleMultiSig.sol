@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.0;
+
 import './libraries/MultiSigWallet.sol';
 import './interfaces/IModerationCommitee.sol';
 
@@ -14,7 +18,7 @@ contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
 
     constructor(address[] memory _owners, uint _required, uint maxCount) MultiSigWallet(_owners, _required, maxCount) {}
 
-    function getMarketParams() external view returns (bool, uint, uint, address, uint, uint, uint, uint){
+    function getMarketParams() external view override returns (bool, uint, uint, address, uint, uint, uint, uint){
         return (
             isActive, 
             fee.numerator,
@@ -46,7 +50,6 @@ contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
 
     function changeFee(uint _feeNum, uint _feeDenom) external onlyWallet {
         require(_feeNum <= _feeDenom);
-        Fee storage _fee = fee;
         fee.numerator = _feeNum;
         fee.denominator = _feeDenom;
     }   

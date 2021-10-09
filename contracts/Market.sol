@@ -1,4 +1,5 @@
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 import './OutcomeToken.sol';
@@ -105,8 +106,8 @@ contract Market {
         (factory, creator, oracle, identifier, oracleFeeNumerator, oracleFeeDenominator, tokenC, expireAfterBlocks, donBufferBlocks, donEscalationLimit, resolutionBufferBlocks) = MarketFactory(msg.sender).deployParams();
         token0 = address(new OutcomeToken());
         token1 = address(new OutcomeToken());
-        expireAtBlock = block.number.add(expireAfterBlocks);
-        donBufferEndsAtBlock = expireAtBlock + donBufferBlocks;
+        expireAtBlock = block.number + expireAfterBlocks;
+        donBufferEndsAtBlock = block.number + expireAfterBlocks + donBufferBlocks;
     }
 
     function getReservesTokenC() public view returns (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1){
@@ -123,6 +124,11 @@ contract Market {
     function getAddressOTokens() public view returns (address _token0, address _token1){
         _token0 = token0;
         _token1 = token1;
+    }
+
+    function getOutcomeStakes() public view returns (uint[2] memory _stakesArr){
+        _stakesArr[0] = lastAmountStaked0;
+        _stakesArr[1] = lastAmountStaked1;
     }
 
     function setOutcomeByExpiry() private {
@@ -160,7 +166,6 @@ contract Market {
     }
     
     function buy(uint amount0, uint amount1, address to) external isMarketFunded {
-        address _tokenC = tokenC;
         address _token0 = token0;
         address _token1 = token1;
         (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1) = getReservesTokenC();
