@@ -86,7 +86,7 @@ contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
             "setupOracle(bool,uint,uint,address,uint,uint,uint,uint)", 
             _isActive, _feeNum, _feeDenom, _tokenC, _expireAfterBlocks,_donEscalationLimit, _donBufferBlocks, _resolutionBufferBlocks
             );
-        addTransaction(address(this), 0, data);
+        submitTransaction(address(this), 0, data);
     }
 
 

@@ -9,7 +9,7 @@ import './libraries/ERC20.sol';
 contract OutcomeToken is ERC20 {
     address public immutable market;
 
-    constructor () {
+    constructor () ERC20("OutcomeToken", "OT") {
         market = msg.sender;
     }
 

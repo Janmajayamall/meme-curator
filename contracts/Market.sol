@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import './OutcomeToken.sol';
 import './libraries/SafeMath.sol';
 import './MarketFactory.sol';
+import './MarketDeployer.sol';
 
 contract Market {
     using SafeMath for uint;
@@ -27,7 +28,8 @@ contract Market {
 
     address public immutable factory;
     bytes32 public immutable identifier;
-    uint public immutable expireAtBlock;
+    uint public expireAtBlock;
+    uint public expireBufferBlocks;
     address public creator;
 
 
@@ -102,12 +104,9 @@ contract Market {
     }
 
     constructor(){
-        uint expireAfterBlocks;
-        (factory, creator, oracle, identifier, oracleFeeNumerator, oracleFeeDenominator, tokenC, expireAfterBlocks, donBufferBlocks, donEscalationLimit, resolutionBufferBlocks) = MarketFactory(msg.sender).deployParams();
+        (factory, creator, oracle, identifier, oracleFeeNumerator, oracleFeeDenominator, tokenC, expireBufferBlocks, donBufferBlocks, donEscalationLimit, resolutionBufferBlocks) = MarketDeployer(msg.sender).deployParams();
         token0 = address(new OutcomeToken());
         token1 = address(new OutcomeToken());
-        expireAtBlock = block.number + expireAfterBlocks;
-        donBufferEndsAtBlock = block.number + expireAfterBlocks + donBufferBlocks;
     }
 
     function getReservesTokenC() public view returns (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1){
@@ -152,6 +151,7 @@ contract Market {
 
     function fund() external isMarketCreated {
         uint balance = IERC20(tokenC).balanceOf(address(this));
+        (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1) = getReservesTokenC();
         uint amount = balance - reserveC;
         
         OutcomeToken(token0).issue(address(this), amount);
@@ -161,6 +161,9 @@ contract Market {
         reserve1 += amount;
         reserveC += amount;
         stage = Stages.MarketFunded;
+        uint _expireBufferBlocks = expireBufferBlocks;
+        expireAtBlock = block.number + _expireBufferBlocks;
+        donBufferEndsAtBlock = block.number + _expireBufferBlocks + donBufferBlocks;
         
         require(amount > 0, 'Funding amount zero');
     }

@@ -10,18 +10,20 @@ contract MarketRouter {
     using SafeMath for uint;
 
     address public immutable factory;
+    address public marketDeployer;
 
     bytes32 private constant MARKET_INIT_CODE_HASH = 0x21291291029121ac21029102100291029102901291092012910921090921099a; 
 
     constructor(address _factory) {
         factory = _factory;
+        // get market deployer's address and store;
     }
 
     /// @notice Contract address of a prediction market
     function getMarketAddress(address creator, address oracle, bytes32 identifier) public view returns (address marketAddress) {
         marketAddress = address(bytes20(keccak256(abi.encodePacked(
                 '0xff',
-                factory,
+                marketDeployer,
                 keccak256(abi.encode(creator, oracle, identifier)),
                 MARKET_INIT_CODE_HASH
             ))));

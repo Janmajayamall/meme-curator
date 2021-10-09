@@ -15,9 +15,10 @@ contract ERC20 is IERC20 {
     string private _name;
     string private _symbol;
 
-    constructor() {
+    constructor(string memory name_, string memory symbol_) {
+        _name = name_;
+        _symbol = symbol_;
     }
-
 
     function name() public view virtual returns (string memory) {
         return _name;

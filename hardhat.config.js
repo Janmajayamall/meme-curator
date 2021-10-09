@@ -1,4 +1,5 @@
 require("@nomiclabs/hardhat-waffle");
+require("hardhat-contract-sizer");
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -8,4 +9,14 @@ require("@nomiclabs/hardhat-waffle");
  */
 module.exports = {
 	solidity: "0.8.4",
+	optimizer: {
+		enable: true,
+		runs: 1000,
+	},
+	contractSizer: {
+		alphaSort: true,
+		disambiguatePaths: false,
+		runOnCompile: true,
+		strict: true,
+	},
 };
