@@ -87,12 +87,12 @@ contract MarketRouter {
 
         uint amountInToken0 = amountInToken0Max;
         uint amountInToken1 = amountInToken1Max;
-        if (fixedTokenIndex == 0){
-            amountInToken1 = Math.getTokenAmountToSellForAmountC(amountInToken0, fixedTokenIndex, _reserve0, _reserve1, amountOutTokenC);
-        }else {
-            amountInToken0 = Math.getTokenAmountToSellForAmountC(amountInToken1, fixedTokenIndex, _reserve0, _reserve1, amountOutTokenC);
-        }
 
+        if (fixedTokenIndex == 0){
+            // amountInToken1 = Math.getTokenAmountToSellForAmountC(amountInToken0, fixedTokenIndex, _reserve0, _reserve1, amountOutTokenC);
+        }else {
+            // amountInToken0 = Math.getTokenAmountToSellForAmountC(amountInToken1, fixedTokenIndex, _reserve0, _reserve1, amountOutTokenC);
+        }
         require(amountInToken0 <= amountInToken0Max && amountInToken1 <= amountInToken1Max);
         
         TransferHelper.safeTransferFrom(token0, msg.sender, market, amountInToken0);

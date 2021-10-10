@@ -49,14 +49,16 @@ contract MathTest {
         console.log("\n Sell starts **************************");
         logAmounts(a0, a1, a);
         logReserves();
+        console.log(balance0, balance1);
+        console.log("adad");
         require(
             (reserve0 * reserve1) <= (reserve0 + a0 - a) * (reserve1 + a1 - a),
             "INVALID INPUTS"
         );
         reserve0 = reserve0 + a0 - a;
         reserve1 = reserve1 + a1 - a;
-        balance0 -= a0;
-        balance1 -= a1;
+        // balance0 -= a0;
+        // balance1 -= a1;
         logReserves();
         console.log("\n Sell ends **************************");
     }

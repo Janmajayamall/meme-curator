@@ -84,7 +84,6 @@ library Math {
         uint x;
         uint y;
         if(fixedTokenIndex == 0){
-            // find a1
             x = r1;
             require(r0 + fixedTokenAmount >= a, "INVALID");
             y = ((r0 * r1)/(r0 + fixedTokenAmount - a)) + 1 + a;
