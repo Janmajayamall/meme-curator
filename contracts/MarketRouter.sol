@@ -83,20 +83,20 @@ contract MarketRouter {
 
         address market =  getMarketAddress(creator, oracle, identifier);
         (address token0, address token1) = Market(market).getAddressOTokens();
-        (uint r0, uint r1) = Market(market).getReservesOTokens();
+        (uint _reserve0, uint _reserve1) = Market(market).getReservesOTokens();
 
-        uint a0 = amountInToken0Max;
-        uint a1 = amountInToken1Max;
-        uint a = amountOutTokenC;
-        if (fixedTokenIndex != 0){
-            a0 = ((r1*a) + (a*a1) + (a*r0) - ((r0*a1)+(a**2)))/(r1+a1-a);
+        uint amountInToken0 = amountInToken0Max;
+        uint amountInToken1 = amountInToken1Max;
+        if (fixedTokenIndex == 0){
+            amountInToken1 = Math.getTokenAmountToSellForAmountC(amountInToken0, fixedTokenIndex, _reserve0, _reserve1, amountOutTokenC);
         }else {
-            a1 = ((r0*a) + (a*a0) + (a*r1) - ((r1*a0)+(a**2)))/(r0+a0-a);
+            amountInToken0 = Math.getTokenAmountToSellForAmountC(amountInToken1, fixedTokenIndex, _reserve0, _reserve1, amountOutTokenC);
         }
-        require(a0 <= amountInToken0Max && a1 <= amountInToken1Max);
+
+        require(amountInToken0 <= amountInToken0Max && amountInToken1 <= amountInToken1Max);
         
-        TransferHelper.safeTransferFrom(token0, msg.sender, market, a0);
-        TransferHelper.safeTransferFrom(token1, msg.sender, market, a1);
+        TransferHelper.safeTransferFrom(token0, msg.sender, market, amountInToken0);
+        TransferHelper.safeTransferFrom(token1, msg.sender, market, amountInToken1);
         Market(market).sell(amountOutTokenC, msg.sender);
     }
 

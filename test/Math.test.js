@@ -6,7 +6,12 @@ function getBigNumber(amount, decimals = 18) {
 	return BigNumber.from(amount).mul(BigNumber.from(10).pow(decimals));
 }
 
-async function buyKnowTokensWithUnknownAmountC(thisRef, a0, a1) {
+async function buyKnowTokensWithUnknownAmountC(
+	thisRef,
+	a0,
+	a1,
+	distortValBy = 0
+) {
 	var reserves = await thisRef.mathTest.getReserves();
 	var amount = await thisRef.mathTest.getAmountCToBuyTokens(
 		getBigNumber(a0),
@@ -15,8 +20,12 @@ async function buyKnowTokensWithUnknownAmountC(thisRef, a0, a1) {
 		reserves[1]
 	);
 
+	// distorts amount value according to distortValBy parameter
+	// helps to see the effect of paying extra (or less, if -ve) amount on rP
+	amount = BigNumber.from(amount).add(getBigNumber(distortValBy));
 	await thisRef.mathTest.buy(getBigNumber(a0), getBigNumber(a1), amount);
 }
+
 async function buyUnknownTokensWithKnowAmountC(
 	thisRef,
 	fixedTokenAmount,
@@ -47,39 +56,71 @@ async function buyUnknownTokensWithKnowAmountC(
 	}
 }
 
+async function sellKnowTokensForUnknownAmountC(
+	thisRef,
+	a0,
+	a1,
+	distortValBy = 0
+) {
+	var reserves = await thisRef.mathTest.getReserves();
+	var amount = await thisRef.mathTest.getAmountCBySellTokens(
+		getBigNumber(a0),
+		getBigNumber(a1),
+		reserves[0],
+		reserves[1]
+	);
+
+	// distorts amount value according to distortValBy parameter
+	// helps to see the effect of paying extra (or less, if -ve) amount on rP
+	amount = BigNumber.from(amount).add(getBigNumber(distortValBy));
+
+	await thisRef.mathTest.sell(getBigNumber(a0), getBigNumber(a1), amount);
+}
+
+async function sellUnknownTokensForKnowAmountC(
+	thisRef,
+	fixedTokenAmount,
+	fixedTokenIndex,
+	amount
+) {
+	var reserves = await thisRef.mathTest.getReserves();
+	var tokenAmount = await thisRef.mathTest.getTokenAmountToSellForAmountC(
+		getBigNumber(fixedTokenAmount),
+		fixedTokenIndex,
+		reserves[0],
+		reserves[1],
+		getBigNumber(amount)
+	);
+
+	if (fixedTokenIndex == 0) {
+		await thisRef.mathTest.sell(
+			fixedTokenAmount,
+			tokenAmount,
+			getBigNumber(amount)
+		);
+	} else if (fixedTokenIndex == 1) {
+		await thisRef.mathTest.sell(
+			tokenAmount,
+			fixedTokenAmount,
+			getBigNumber(amount)
+		);
+	}
+}
+
 describe("Math", async function () {
 	before(async function () {
 		this.MathTest = await ethers.getContractFactory("MathTest");
 		this.mathTest = await this.MathTest.deploy();
 	});
 
-	it("Balance trades", async function () {
+	it("Balanced trades", async function () {
 		await this.mathTest.fund(getBigNumber(10));
 		await buyKnowTokensWithUnknownAmountC(this, 5, 0);
-		await buyKnowTokensWithUnknownAmountC(this, 3, 5);
-		await buyUnknownTokensWithKnowAmountC(this, 0, 0, 8);
-		await buyKnowTokensWithUnknownAmountC(this, 100, 0);
-		await buyKnowTokensWithUnknownAmountC(this, 3, 300);
-		await buyKnowTokensWithUnknownAmountC(this, 3, 234);
-		await buyKnowTokensWithUnknownAmountC(this, 332, 5);
-		await buyKnowTokensWithUnknownAmountC(this, 3, 123);
+		await buyKnowTokensWithUnknownAmountC(this, 3, 23);
+		await buyKnowTokensWithUnknownAmountC(this, 72, 0);
+		await buyKnowTokensWithUnknownAmountC(this, 32, 34);
+
+		// await sellKnowTokensForUnknownAmountC(this, 0, 57);
+		await sellUnknownTokensForKnowAmountC(this, 0, 0, 4);
 	});
 });
-
-// 1. Write tests for market.sol
-// 2. Fill up application form Mirror.xyz
-
-// console.log(
-// 	`allowance from market creator factor ${await this.memeToken.allowance(
-// 		this.marketCreator.address,
-// 		this.marketFactory.address
-// 	)}`
-// );
-
-// console.log(`meme token address ${this.memeToken.address}`);
-
-// console.log(
-// 	`balance of market creator ${await this.memeToken.balanceOf(
-// 		this.marketCreator.address
-// 	)}`
-// );

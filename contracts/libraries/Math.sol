@@ -2,15 +2,17 @@
 
 pragma solidity ^0.8.0;
 
+import 'hardhat/console.sol';
+
 library Math {
     function isValidAmountCRoot(uint a0, uint a1, uint r0, uint r1, uint a, bool buy) internal pure returns (bool){
         if (buy == true){
-            if((r0 + a - a0) > 0 && (r1 + a - a1) > 0){
+            if((r0 + a) > a0 && (r1 + a) > a1){
                 return true;
             }
             return false;
         }else{
-            if((r0 + a0 - a) > 0 && (r1 + a1 - a) > 0){
+            if((r0 + a0) > a && (r1 + a1) > a){
                 return true;
             }
             return false;
@@ -50,9 +52,11 @@ library Math {
         if(fixedTokenIndex == 0){
             // find a1
             x = r1 + a;
+            require(r0 + a >= fixedTokenAmount, "INVALID");
             y = (r0 * r1)/(r0 + a - fixedTokenAmount);
         }else{
             x = r0 + a;
+            require(r1 + a >= fixedTokenAmount, "INVALID");
             y = (r0 * r1)/(r1 + a - fixedTokenAmount);
         }
 
@@ -67,14 +71,33 @@ library Math {
         uint c = (r0*a1) + (r1*a0) + (a0*a1);
         uint rootVal = ((nveB**2) - (4 * c));
         rootVal = sqrt(rootVal);
-        a = ((nveB+rootVal)/2);
+        a = (nveB - rootVal)/2;
         if (!isValidAmountCRoot(a0, a1, r0, r1, a, false)){
             require(nveB >= rootVal, 'ERR');
             a = (nveB - rootVal)/2;
         }
+        a -= 1;
     }
 
-    // function getTokenAmountToSellForAmountC(){}
+    function getTokenAmountToSellForAmountC(uint fixedTokenAmount, uint fixedTokenIndex, uint r0, uint r1, uint a) internal pure returns (uint tokenAmount){
+        require(fixedTokenIndex < 2);
+        uint x;
+        uint y;
+        if(fixedTokenIndex == 0){
+            // find a1
+            x = r1;
+            require(r0 + fixedTokenAmount >= a, "INVALID");
+            y = ((r0 * r1)/(r0 + fixedTokenAmount - a)) + 1 + a;
+        }else{
+            x = r0;
+            require(r1 + fixedTokenAmount >= a, "INVALID");
+            y = ((r0 * r1)/(r1 + fixedTokenAmount - a)) + 1 + a;
+        }
+
+        require(y >= x, "INVALID INPUTS");
+        tokenAmount = y - x;
+    }
+
 
     /// @notice computes square roots using the babylonian method - https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method
     function sqrt(uint256 x) internal pure returns (uint256) {
