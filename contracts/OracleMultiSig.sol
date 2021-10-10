@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import './libraries/MultiSigWallet.sol';
 import './interfaces/IModerationCommitee.sol';
+import 'hardhat/console.sol';
 
 contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
 
@@ -81,10 +82,10 @@ contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
     /* 
     Helper functions for adding txs for functions above
      */
-    function addTxSetupOracle(bool _isActive, uint _feeNum, uint _feeDenom, address _tokenC, uint _expireAfterBlocks, uint _donEscalationLimit, uint _donBufferBlocks, uint _resolutionBufferBlocks) external ownerExists(msg.sender) {
+    function addTxSetupOracle(bool _isActive, uint _feeNum, uint _feeDenom, address _tokenC, uint _expireAfterBlocks, uint _donEscalationLimit, uint _donBufferBlocks, uint _resolutionBufferBlocks) external ownerExists(msg.sender)  {
         bytes memory data = abi.encodeWithSignature(
-            "setupOracle(bool,uint,uint,address,uint,uint,uint,uint)", 
-            _isActive, _feeNum, _feeDenom, _tokenC, _expireAfterBlocks,_donEscalationLimit, _donBufferBlocks, _resolutionBufferBlocks
+            "setupOracle(bool,uint256,uint256,address,uint256,uint256,uint256,uint256)", 
+            _isActive, _feeNum, _feeDenom, _tokenC, _expireAfterBlocks, _donEscalationLimit, _donBufferBlocks, _resolutionBufferBlocks
             );
         submitTransaction(address(this), 0, data);
     }

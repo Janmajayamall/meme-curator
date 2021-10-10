@@ -40,7 +40,27 @@ library Math {
             require(rootVal >= b, 'ERR b>rootVal sign=1');
             a = ((rootVal - b)/2);
         }
+        a += 1;
     }
+
+    function getTokenAmountToBuyWithAmountC(uint fixedTokenAmount, uint fixedTokenIndex, uint r0, uint r1, uint a) internal pure returns (uint tokenAmount){
+        require(fixedTokenIndex < 2);
+        uint x;
+        uint y;
+        if(fixedTokenIndex == 0){
+            // find a1
+            x = r1 + a;
+            y = (r0 * r1)/(r0 + a - fixedTokenAmount);
+        }else{
+            x = r0 + a;
+            y = (r0 * r1)/(r1 + a - fixedTokenAmount);
+        }
+
+        y += 1;
+        require(x >= y, "INVALID INPUTS");
+        tokenAmount = x - y;
+    }
+
 
     function getAmountCBySellTokens(uint a0, uint a1, uint r0, uint r1) internal pure returns (uint a) {
         uint nveB = r0 + a0 + r1 + a1;
@@ -53,6 +73,8 @@ library Math {
             a = (nveB - rootVal)/2;
         }
     }
+
+    // function getTokenAmountToSellForAmountC(){}
 
     /// @notice computes square roots using the babylonian method - https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method
     function sqrt(uint256 x) internal pure returns (uint256) {

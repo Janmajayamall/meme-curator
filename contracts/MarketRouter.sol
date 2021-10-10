@@ -47,20 +47,19 @@ contract MarketRouter {
 
         address market =  getMarketAddress(creator, oracle, identifier);
         address tokenC = Market(market).tokenC();
-        (uint r0, uint r1) = Market(market).getReservesOTokens();
+        (uint _reserve0, uint _reserve1) = Market(market).getReservesOTokens();
 
-        uint a0 = amountOutToken0Min;
-        uint a1 = amountOutToken1Min;
-        uint a = amountInC;
-        if (fixedTokenIndex != 0){
-            a0 = ((r0*a) + (r1*a) + a**2 - ((r0*a1) + (a*a1)))/(r1 + a1 - a);
-        }else{
-            a1 = ((r1*a) + (r0*a) + a**2 - ((r1*a0) + (a*a0)))/(r0 + a0 - a);
+        uint amountOutToken0 = amountOutToken0Min;
+        uint amountOutToken1 = amountOutToken1Min;
+        if (fixedTokenIndex == 0){
+            amountOutToken1 = Math.getTokenAmountToBuyWithAmountC(amountOutToken0, fixedTokenIndex, _reserve0, _reserve1, amountInC);
+        }else {
+            amountOutToken0 = Math.getTokenAmountToBuyWithAmountC(amountOutToken1, fixedTokenIndex, _reserve0, _reserve1, amountInC);
         }
-        require(a0 >= amountOutToken0Min && a1 >= amountOutToken1Min);
+        require(amountOutToken0 >= amountOutToken0Min && amountOutToken1 >= amountOutToken1Min);
 
         TransferHelper.safeTransferFrom(tokenC, msg.sender, market, amountInC);
-        Market(market).buy(a0, a1, msg.sender);
+        Market(market).buy(amountOutToken0, amountOutToken1, msg.sender);
     }
 
     /// @notice Sell exact amountInToken0 & amountInToken1 for collateral tokens >= amountOutTokenCMin

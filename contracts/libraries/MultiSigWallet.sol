@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.0;
 
+import 'hardhat/console.sol';
+
 
 /// @title Multisignature wallet - Allows multiple parties to agree on transactions before execution.
 /// @author Stefan George - <stefan.george@consensys.net>
@@ -192,6 +194,7 @@ contract MultiSigWallet {
         returns (uint transactionId)
     {
         transactionId = addTransaction(destination, value, data);
+        console.log("multi sig tx submimted with id %s", transactionId);
         confirmTransaction(transactionId);
     }
 
@@ -205,6 +208,7 @@ contract MultiSigWallet {
     {
         confirmations[transactionId][msg.sender] = true;
         emit Confirmation(msg.sender, transactionId);
+        console.log("tx with id %s confirmed by owner %s", transactionId, msg.sender);
         executeTransaction(transactionId);
     }
 
@@ -229,9 +233,11 @@ contract MultiSigWallet {
         notExecuted(transactionId)
     {
         if (isConfirmed(transactionId)) {
+
             Transaction storage txn = transactions[transactionId];
             txn.executed = true;
             (bool success,) = txn.destination.call{value: txn.value}(txn.data);
+            console.log("tx with id %s is executed with success %s", transactionId, success);
             if (success == true){
                 emit Execution(transactionId);
             } else {

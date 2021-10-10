@@ -9,7 +9,7 @@ import './MarketDeployer.sol';
 
 contract MarketFactory {
     // creator => oracle => identifier
-    mapping(address => mapping(address => mapping(bytes32 => address))) markets;
+    mapping(address => mapping(address => mapping(bytes32 => address))) public markets;
     address public immutable deployer;
 
     constructor(){
@@ -21,11 +21,11 @@ contract MarketFactory {
 
         // deploy
         (bool _isActive,uint _oracleFeeNumerator,uint _oracleFeeDenominator, address _tokenC, uint _expireAfterBlocks, uint _resolutionBufferBlocks, uint _donBufferBlocks, uint _donEscalationLimit) = IModerationCommitte(_oracle).getMarketParams();
-        require(_isActive);
+        require(_isActive, "not active");
         address marketAddress = MarketDeployer(deployer).deploy(_creator, _oracle, _identifier, _oracleFeeNumerator, _oracleFeeDenominator, _tokenC, _expireAfterBlocks, _resolutionBufferBlocks, _donBufferBlocks, _donEscalationLimit);
 
         // fund market
-        TransferHelper.safeTransfer(_tokenC, marketAddress, _fundingAmount);
+        TransferHelper.safeTransferFrom(_tokenC, msg.sender, marketAddress, _fundingAmount);
         Market(marketAddress).fund();
         
         markets[_creator][_oracle][_identifier] = marketAddress;

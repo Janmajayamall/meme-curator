@@ -6,6 +6,7 @@ import './OutcomeToken.sol';
 import './libraries/SafeMath.sol';
 import './MarketFactory.sol';
 import './MarketDeployer.sol';
+import 'hardhat/console.sol';
 
 contract Market {
     using SafeMath for uint;
@@ -50,7 +51,7 @@ contract Market {
     mapping(address => uint256)[2] stakes;
 
     // final resolution related
-    address public immutable oracle;
+    address oracle;
     uint public resolutionBufferBlocks;
     uint public resolutionEndsAtBlock;
     uint public immutable oracleFeeNumerator;
@@ -152,7 +153,7 @@ contract Market {
     function fund() external isMarketCreated {
         uint balance = IERC20(tokenC).balanceOf(address(this));
         (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1) = getReservesTokenC();
-        uint amount = balance - reserveC;
+        uint amount = balance - (_reserveC + _reserveDoN0 + _reserveDoN1);
         
         OutcomeToken(token0).issue(address(this), amount);
         OutcomeToken(token1).issue(address(this), amount);   
@@ -187,7 +188,7 @@ contract Market {
 
         uint _reserve0New = (_reserve0 + amount) - amount0;
         uint _reserve1New = (_reserve1 + amount) - amount1;
-        require(_reserve0.mul(_reserve1) == _reserve0New.mul(_reserve1New));
+        require(_reserve0.mul(_reserve1) <= _reserve0New.mul(_reserve1New));
 
         reserve0 = _reserve0New;
         reserve1 = _reserve1New;
