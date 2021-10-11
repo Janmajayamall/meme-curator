@@ -2,8 +2,6 @@
 
 pragma solidity >=0.6.0;
 
-import 'hardhat/console.sol';
-
 // @notice Taken from https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol
 // helper methods for interacting with ERC20 tokens and sending ETH that do not consistently return true/false
 library TransferHelper {
@@ -41,7 +39,6 @@ library TransferHelper {
     ) internal {
         // bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0x23b872dd, from, to, value));
-        console.log("safeTrasferFrom for token %s success %s", token, success);
         require(
             success && (data.length == 0 || abi.decode(data, (bool))),
             'TransferHelper::transferFrom: transferFrom failed'

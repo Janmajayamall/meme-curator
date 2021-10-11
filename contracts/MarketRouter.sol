@@ -32,7 +32,7 @@ contract MarketRouter {
     /// @notice Buy exact amountOfToken0 & amountOfToken1 with collteral tokens <= amountInCMax
     function buyExactTokensForMaxCTokens(uint amountOutToken0, uint amountOutToken1, uint amountInCMax, address creator, address oracle, bytes32 identifier) external {
         address market =  getMarketAddress(creator, oracle, identifier);
-        address tokenC = Market(market).tokenC();
+        (address tokenC, ,) = Market(market).getAddressOfTokens();
         (uint _reserve0, uint _reserve1) = Market(market).getReservesOTokens();
         uint amountIn = Math.getAmountCToBuyTokens(amountOutToken0, amountOutToken1, _reserve0, _reserve1);
         require(amountInCMax >= amountIn);
@@ -46,7 +46,7 @@ contract MarketRouter {
         require(fixedTokenIndex < 2);
 
         address market =  getMarketAddress(creator, oracle, identifier);
-        address tokenC = Market(market).tokenC();
+        (address tokenC, ,) = Market(market).getAddressOfTokens();
         (uint _reserve0, uint _reserve1) = Market(market).getReservesOTokens();
 
         uint amountOutToken0 = amountOutToken0Min;
@@ -65,7 +65,7 @@ contract MarketRouter {
     /// @notice Sell exact amountInToken0 & amountInToken1 for collateral tokens >= amountOutTokenCMin
     function sellExactTokensForMinCTokens(uint amountInToken0, uint amountInToken1, uint amountOutTokenCMin, address creator, address oracle, bytes32 identifier) external {
         address market =  getMarketAddress(creator, oracle, identifier);
-        (address token0, address token1) = Market(market).getAddressOTokens();
+        (, address token0, address token1) = Market(market).getAddressOfTokens();
         (uint _reserve0, uint _reserve1) = Market(market).getReservesOTokens();
 
         uint amountOutTokenC = Math.getAmountCBySellTokens(amountInToken0, amountInToken1, _reserve0, _reserve1);
@@ -82,7 +82,7 @@ contract MarketRouter {
         require(fixedTokenIndex < 2);
 
         address market =  getMarketAddress(creator, oracle, identifier);
-        (address token0, address token1) = Market(market).getAddressOTokens();
+        (, address token0, address token1) = Market(market).getAddressOfTokens();
         (uint _reserve0, uint _reserve1) = Market(market).getReservesOTokens();
 
         uint amountInToken0 = amountInToken0Max;
@@ -104,7 +104,7 @@ contract MarketRouter {
     function stakeForOutcome(uint _for, uint amountIn, address creator, address oracle, bytes32 identifier) external {
         require(_for < 2);
         address market =  getMarketAddress(creator, oracle, identifier);
-        address tokenC = Market(market).tokenC();
+        (address tokenC, , ) = Market(market).getAddressOfTokens();
         uint[2] memory stakes = Market(market).getOutcomeStakes();
         require(stakes[_for]*2 == amountIn);
         TransferHelper.safeTransferFrom(tokenC, msg.sender, market, amountIn);
