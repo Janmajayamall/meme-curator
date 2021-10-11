@@ -9,14 +9,19 @@ require("hardhat-contract-sizer");
  */
 module.exports = {
 	solidity: "0.8.4",
-	optimizer: {
-		enable: true,
-		runs: 1000,
-	},
+
 	contractSizer: {
 		alphaSort: true,
 		disambiguatePaths: false,
-		runOnCompile: true,
-		strict: true,
+		runOnCompile: false,
+		strict: false,
+	},
+	networks: {
+		hardhat: {
+			gas: 12000000,
+			blockGasLimit: 0x1fffffffffffff,
+			allowUnlimitedContractSize: true,
+			timeout: 1800000,
+		},
 	},
 };

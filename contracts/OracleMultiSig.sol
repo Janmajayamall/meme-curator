@@ -20,15 +20,16 @@ contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
     constructor(address[] memory _owners, uint _required, uint maxCount) MultiSigWallet(_owners, _required, maxCount) {}
 
     function getMarketParams() external view override returns (bool, uint, uint, address, uint, uint, uint, uint){
+        // TODO organise this properly
         return (
             isActive, 
             fee.numerator,
             fee.denominator,
             tokenC,
             expireAfterBlocks,
-            donEscalationLimit,
+            resolutionBufferBlocks,
             donBufferBlocks,
-            resolutionBufferBlocks
+            donEscalationLimit
         );
     }
 
