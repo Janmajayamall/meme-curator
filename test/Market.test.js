@@ -662,5 +662,8 @@ describe("Market", function () {
 			// outcome should be 0
 			expect(await this.market.outcome()).to.be.eq(0);
 		});
+
+		// test 0 escalation limit & 0 buffer blocks -> desired result is market goes directly to result after expiry. 
+		// i.e. buffer blocks 
 	});
 });
