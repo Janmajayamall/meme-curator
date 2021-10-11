@@ -206,9 +206,18 @@ contract Market {
         uint amount0 = balance0 - _reserve0;
         uint amount1 = balance1 - _reserve1;
 
+        // burn outcome tokens
+        OutcomeToken(token0).revoke(address(this), amount);
+        OutcomeToken(token1).revoke(address(this), amount);
+
+        // // console.log("**********************************");
+        // console.log("%s %s %s", amount0, amount1, amount);
+        // console.log("%s %s %s", _reserve0, _reserve1, _reserve1*_reserve0);
+        // // console.log("**********************************");
+
         uint _reserve0New = (_reserve0 + amount0) - amount;
         uint _reserve1New = (_reserve1 + amount1) - amount;
-        require(_reserve0.mul(_reserve1) == _reserve0New.mul(_reserve1New));
+        require(_reserve0.mul(_reserve1) <= _reserve0New.mul(_reserve1New), "ERR - INV TRADE");
 
         reserve0 = _reserve0New;
         reserve1 = _reserve1New;

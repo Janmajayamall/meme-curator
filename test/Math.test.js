@@ -114,12 +114,9 @@ describe("Math", async function () {
 	});
 
 	it("Balanced trades", async function () {
-		await this.mathTest.fund(getBigNumber(10));
-		await buyKnowTokensWithUnknownAmountC(this, 10, 10);
-		await buyKnowTokensWithUnknownAmountC(this, 0, 18);
-		await buyKnowTokensWithUnknownAmountC(this, 23, 0);
-		await buyKnowTokensWithUnknownAmountC(this, 10, 0);
-		await sellKnowTokensForUnknownAmountC(this, 0, 10, -1);
+		// await this.mathTest.fund(getBigNumber(10));
+		// await buyKnowTokensWithUnknownAmountC(this, 0, 5);
+		// await sellKnowTokensForUnknownAmountC(this, 0, 4);
 		// await sellKnowTokensForUnknownAmountC(this, 0, 57);
 		// await sellUnknownTokensForKnowAmountC(this, 0, 0, 5);
 	});

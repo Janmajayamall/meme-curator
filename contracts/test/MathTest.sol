@@ -49,8 +49,6 @@ contract MathTest {
         console.log("\n Sell starts **************************");
         logAmounts(a0, a1, a);
         logReserves();
-        console.log(balance0, balance1);
-        console.log("adad");
         require(
             (reserve0 * reserve1) <= (reserve0 + a0 - a) * (reserve1 + a1 - a),
             "INVALID INPUTS"
@@ -81,8 +79,13 @@ contract MathTest {
         return amount;
     }
 
-    function getAmountCBySellTokens(uint a0, uint a1, uint r0, uint r1) external pure returns (uint){
+    function getAmountCBySellTokens(uint a0, uint a1, uint r0, uint r1) external view returns (uint){
         uint amount = Math.getAmountCBySellTokens(a0, a1, r0, r1);
+        // console.log("**************************");
+        // console.log("%s %s", a0, a1);
+        // console.log("%s %s", r0, r1);
+        // console.log("%s", amount);
+        // console.log("**************************");
         return amount;
     }
 

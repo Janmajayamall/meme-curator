@@ -2,8 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import 'hardhat/console.sol';
-
 library Math {
     function isValidAmountCRoot(uint a0, uint a1, uint r0, uint r1, uint a, bool buy) internal pure returns (bool){
         if (buy == true){
@@ -71,7 +69,7 @@ library Math {
         uint c = (r0*a1) + (r1*a0) + (a0*a1);
         uint rootVal = ((nveB**2) - (4 * c));
         rootVal = sqrt(rootVal);
-        a = (nveB - rootVal)/2;
+        a = (nveB + rootVal)/2;
         if (!isValidAmountCRoot(a0, a1, r0, r1, a, false)){
             require(nveB >= rootVal, 'ERR');
             a = (nveB - rootVal)/2;
