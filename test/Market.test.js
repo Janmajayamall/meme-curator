@@ -88,6 +88,18 @@ async function approveTokens(contract, owner, toAddress, amount) {
 	await contract.connect(owner).approve(toAddress, amount);
 }
 
+async function checkOracleSetOutcomeAndFee(thisRef, outcome, expectedFee) {
+	// oracles resolves the market to 0 & charges 3% oracle fee
+	const oracleBalanceB = await thisRef.memeToken.balanceOf(
+		thisRef.oracleMultiSig.address
+	);
+	await setOutcome(thisRef, outcome);
+	const oracleBalanceA = await thisRef.memeToken.balanceOf(
+		thisRef.oracleMultiSig.address
+	);
+	expect(subBN(oracleBalanceA, oracleBalanceB)).eq(expectedFee);
+}
+
 async function buyTrade(thisRef, a0, a1) {
 	// console.log(
 	// 	`******************************BUY OPERATION************************************`
@@ -225,41 +237,45 @@ async function sellTrade(thisRef, a0, a1) {
 	// );
 }
 
-async function checkRedeemWinning(thisRef, _for) {
+async function checkRedeemWinning(
+	thisRef,
+	_for,
+	user = undefined,
+	expectedWinning
+) {
+	if (!user) {
+		user = thisRef.trader1;
+	}
+
 	const tokenAddresses = await thisRef.market.getAddressOfTokens();
 	const tokenAddress = tokenAddresses[0];
 	const token0Address = tokenAddresses[1];
 	const token1Address = tokenAddresses[2];
 
 	// before redeeming
-	var tokenCBalance = await thisRef.memeToken.balanceOf(
-		thisRef.trader1.address
-	);
-	var tokenOBalance = 0;
-	if (_for == 0) {
-		tokenOBalance = await thisRef.OutcomeToken.attach(
-			token0Address
-		).balanceOf(thisRef.trader1.address);
-	} else if (_for == 1) {
-		tokenOBalance = await thisRef.OutcomeToken.attach(
-			token1Address
-		).balanceOf(thisRef.trader1.address);
-	}
+	var tokenCBalance = await thisRef.memeToken.balanceOf(user.address);
+	// var tokenOBalance = 0;
+	// if (_for == 0) {
+	// 	tokenOBalance = await thisRef.OutcomeToken.attach(
+	// 		token0Address
+	// 	).balanceOf(thisRef.trader1.address);
+	// } else if (_for == 1) {
+	// 	tokenOBalance = await thisRef.OutcomeToken.attach(
+	// 		token1Address
+	// 	).balanceOf(thisRef.trader1.address);
+	// }
 
 	console.log(`
 		*********REDEEM WINNING**************	
 		Before: 
-		TokenC Balance - ${tokenCBalance}
-		TokenO Balance - ${tokenOBalance} For - ${_for}
+		TokenC Balance - ${tokenCBalance} For - ${_for}
 	`);
 
-	await redeemWining(thisRef, _for);
+	await redeemWining(thisRef, _for, user);
 
-	var tokenCBalanceAfter = await thisRef.memeToken.balanceOf(
-		thisRef.trader1.address
-	);
+	var tokenCBalanceAfter = await thisRef.memeToken.balanceOf(user.address);
 	// after redeeming
-	expect(tokenCBalanceAfter).to.eq(addBN(tokenCBalance, tokenOBalance));
+	expect(tokenCBalanceAfter).to.eq(addBN(tokenCBalance, expectedWinning));
 
 	console.log(`
 		After: 
@@ -280,8 +296,7 @@ async function checkRedeemStake(thisRef, _for, user, expectedWinnings) {
 	const reserveDoN0 = await thisRef.market.reserveDoN0();
 	const reserveDoN1 = await thisRef.market.reserveDoN1();
 	const lastOutcomeStaked = await thisRef.market.lastOutcomeStaked();
-	const lastAmountStaked0 = await thisRef.market.lastAmountStaked0();
-	const lastAmountStaked1 = await thisRef.market.lastAmountStaked1();
+	const staking = await thisRef.market.staking();
 	const outcome = await thisRef.market.outcome();
 
 	// get stake amount
@@ -293,8 +308,8 @@ async function checkRedeemStake(thisRef, _for, user, expectedWinnings) {
 		reserveDoN0 - ${reserveDoN0}
 		reserveDoN1 - ${reserveDoN1}
 		lastOutcomeStaked - ${lastOutcomeStaked}
-		lastAmountStaked0 - ${lastAmountStaked0}
-		lastAmountStaked1 - ${lastAmountStaked1}
+		lastAmountStaked0 - ${staking[0]}
+		lastAmountStaked1 - ${staking[1]}
 		outcome - ${outcome}
 		stakeAmount - ${stakeAmount}
 		expected winning - ${expectedWinnings}
@@ -332,17 +347,21 @@ async function checkRedeemStake(thisRef, _for, user, expectedWinnings) {
 	expect(afterBalance).to.eq(addBN(balance, expectedWinnings));
 }
 
-async function redeemWining(thisRef, _for) {
+async function redeemWining(thisRef, _for, user = undefined) {
+	if (!user) {
+		user = thisRef.trader1;
+	}
+
 	const tokenAddresses = await thisRef.market.getAddressOfTokens();
 	const token0Address = tokenAddresses[1];
 	const token1Address = tokenAddresses[2];
 	if (_for == 0) {
 		const balance = await thisRef.OutcomeToken.attach(
 			token0Address
-		).balanceOf(thisRef.trader1.address);
+		).balanceOf(user.address);
 		await transferTokens(
 			thisRef.OutcomeToken.attach(token0Address),
-			thisRef.trader1,
+			user,
 			thisRef.market.address,
 			balance
 		);
@@ -350,17 +369,17 @@ async function redeemWining(thisRef, _for) {
 	if (_for == 1) {
 		const balance = await thisRef.OutcomeToken.attach(
 			token1Address
-		).balanceOf(thisRef.trader1.address);
+		).balanceOf(user.address);
 		await transferTokens(
 			thisRef.OutcomeToken.attach(token1Address),
-			thisRef.trader1,
+			user,
 			thisRef.market.address,
 			balance
 		);
 	}
 
 	// redeem
-	await thisRef.market.redeemWinning(_for, thisRef.trader1.address);
+	await thisRef.market.redeemWinning(_for, user.address);
 }
 
 async function setOutcome(thisRef, to) {
@@ -382,9 +401,7 @@ async function stakeOutcome(thisRef, _for, amount, user = undefined) {
 	}
 
 	// stake
-	await thisRef.market
-		.connect(user)
-		.stakeOutcome(_for, thisRef.trader1.address);
+	await thisRef.market.connect(user).stakeOutcome(_for, user.address);
 }
 
 async function createOracleMultiSig(thisRef, oracleConfig) {
@@ -847,7 +864,7 @@ describe("Market", function () {
 			expect(await this.market.stage()).to.be.eq(1);
 
 			// redeemWinning - closes the market
-			await checkRedeemWinning(this, 1);
+			await checkRedeemWinning(this, 1, this.trader1, getBigNumber(9));
 
 			// market stage should be closed now
 			expect(await this.market.stage()).to.be.eq(4);
@@ -876,11 +893,12 @@ describe("Market", function () {
 			await stakeOutcome(this, 0, getBigNumber(16), this.trader1);
 			await stakeOutcome(this, 0, getBigNumber(32), this.trader1);
 
-			// oracles resolves the market to 0 - 3% oracle fee
-			await setOutcome(this, 0);
-			console.log(
-				`${getBigNumber((16 + 32 + 10 * 0.97) * 100).div(100)}`
+			await checkOracleSetOutcomeAndFee(
+				this,
+				0,
+				getBigNumber(0.03 * 10 * 100).div(100)
 			);
+
 			// redeem stake
 			await checkRedeemStake(
 				this,
@@ -889,13 +907,88 @@ describe("Market", function () {
 				getBigNumber((16 + 32 + 10 * 0.97) * 100).div(100)
 			); // should win
 			await checkRedeemStake(this, 0, this.trader2, getBigNumber(4)); // should get 4 back
-			await checkRedeemStake(this, 0, this.trader2, getBigNumber(0)); // should get 0 back for stake in outcome 1
+			await checkRedeemStake(this, 1, this.trader2, getBigNumber(0)); // should get 0 back for stake in outcome 1
 
 			// outcome should be set to 0
 			expect(await this.market.outcome()).to.be.eq(0);
 
 			// redeem winning
-			await checkRedeemWinning(this, 0);
+			const tokenBalances = await getTokenBalances(
+				this,
+				this.trader1.address
+			);
+			await checkRedeemWinning(this, 0, this.trader1, tokenBalances[1]);
+		});
+
+		it("Should resolve in opposition of last staked outcome by the oracle", async function () {
+			await stakeOutcome(this, 1, getBigNumber(2), this.trader2);
+			await stakeOutcome(this, 0, getBigNumber(4), this.trader2);
+			await stakeOutcome(this, 1, getBigNumber(8), this.trader2);
+			await stakeOutcome(this, 0, getBigNumber(16), this.trader1);
+			await stakeOutcome(this, 0, getBigNumber(32), this.trader1);
+
+			await checkOracleSetOutcomeAndFee(
+				this,
+				1,
+				getBigNumber(0.03 * 52 * 100).div(100)
+			);
+
+			// redeem stake
+			await checkRedeemStake(this, 0, this.trader1, getBigNumber(0));
+			await checkRedeemStake(this, 1, this.trader1, getBigNumber(0));
+			await checkRedeemStake(
+				this,
+				1,
+				this.trader2,
+				getBigNumber((8 + 2 + 52 * 0.97) * 100).div(100)
+			); // should win
+			await checkRedeemStake(this, 1, this.trader2, getBigNumber(0)); // just checking for double calls
+			await checkRedeemStake(this, 0, this.trader2, getBigNumber(0)); // just checking for double calls
+
+			// outcome should be set to 0
+			expect(await this.market.outcome()).to.be.eq(1);
+
+			// redeem winning
+			const tokenBalances = await getTokenBalances(
+				this,
+				this.trader1.address
+			);
+			await checkRedeemWinning(this, 1, this.trader1, tokenBalances[2]);
+		});
+
+		it("Should resolve in opposition of last staked outcome by the oracle, but opposition stakes are zero", async function () {
+			await stakeOutcome(this, 0, getBigNumber(2), this.trader1);
+			await stakeOutcome(this, 0, getBigNumber(4), this.trader1);
+			await stakeOutcome(this, 0, getBigNumber(8), this.trader1);
+			await stakeOutcome(this, 0, getBigNumber(16), this.trader1);
+			await stakeOutcome(this, 0, getBigNumber(32), this.trader1);
+
+			await checkOracleSetOutcomeAndFee(
+				this,
+				1,
+				getBigNumber(0.03 * 62 * 100).div(100)
+			);
+
+			// redeem stake
+			await checkRedeemStake(
+				this,
+				1,
+				this.trader2,
+				getBigNumber(62 * 0.97 * 100).div(100)
+			); // should win since it's free money
+			await checkRedeemStake(this, 0, this.trader1, getBigNumber(0));
+			await checkRedeemStake(this, 1, this.trader2, getBigNumber(0)); // just checking for double calls
+			await checkRedeemStake(this, 0, this.trader2, getBigNumber(0)); // just checking for double calls
+
+			// outcome should be set to 0
+			expect(await this.market.outcome()).to.be.eq(1);
+
+			// redeem winning
+			const tokenBalances = await getTokenBalances(
+				this,
+				this.trader1.address
+			);
+			await checkRedeemWinning(this, 1, this.trader1, tokenBalances[2]);
 		});
 	});
 

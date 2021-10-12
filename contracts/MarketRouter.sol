@@ -105,8 +105,9 @@ contract MarketRouter {
         require(_for < 2);
         address market =  getMarketAddress(creator, oracle, identifier);
         (address tokenC, , ) = Market(market).getAddressOfTokens();
-        uint[2] memory stakes = Market(market).getOutcomeStakes();
-        require(stakes[_for]*2 == amountIn);
+        (uint amount0,  uint amount1, ,) = Market(market).staking();
+        require(amount0*2 <= amountIn);
+        require(amount1*2 <= amountIn);
         TransferHelper.safeTransferFrom(tokenC, msg.sender, market, amountIn);
         Market(market).stakeOutcome(_for, msg.sender);
     }

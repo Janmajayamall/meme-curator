@@ -19,6 +19,13 @@ contract Market {
         MarketClosed
     }
 
+    struct Staking {
+        uint amount0;
+        uint amount1;
+        address staker0;
+        address staker1;
+    }
+
     uint256 reserve0;
     uint256 reserve1;
     uint256 reserveC;
@@ -41,8 +48,7 @@ contract Market {
     uint256 public reserveDoN0;
     uint256 public reserveDoN1;
     uint public lastOutcomeStaked = 2;
-    uint public lastAmountStaked0;
-    uint public lastAmountStaked1;
+    Staking public staking;
     uint donEscalationCount;
     uint donEscalationLimit;
     uint donBufferEndsAtBlock;
@@ -145,10 +151,6 @@ contract Market {
         _token1 = token1;
     }
 
-    function getOutcomeStakes() public view returns (uint[2] memory _stakesArr){
-        _stakesArr[0] = lastAmountStaked0;
-        _stakesArr[1] = lastAmountStaked1;
-    }
 
     function getStake(address _of, uint _for) external view returns (uint) {
         require(_for < 2);
@@ -274,8 +276,9 @@ contract Market {
         require(_for < 2);
         
         (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1) = getReservesTokenC(); 
-        uint _lastAmountStaked0 = lastAmountStaked0;
-        uint _lastAmountStaked1 = lastAmountStaked1;
+        Staking memory _staking = staking;
+        uint _lastAmountStaked0 = _staking.amount0;
+        uint _lastAmountStaked1 = _staking.amount1;
 
         uint balance = IERC20(tokenC).balanceOf(address(this));
         uint amount = balance - (_reserveDoN0 + _reserveDoN1 + _reserveC);
@@ -283,15 +286,19 @@ contract Market {
         stakes[_for][to] += amount;
         if (_for == 0) {
             reserveDoN0 += amount;
-            lastAmountStaked0 = amount;
+            _staking.amount0 = amount;
+            _staking.staker0 = to;
         }
         if (_for == 1) {
             reserveDoN1 += amount;
-            lastAmountStaked1 = amount;
+            _staking.amount1 = amount;
+            _staking.staker1 = to;
         } 
+        // console.log("Stakes 0 - %s, 1 - %s", _staking.amount0, _staking.amount1);
         lastOutcomeStaked = _for;
         donEscalationCount += 1;
         donBufferEndsAtBlock = donBufferBlocks + block.number;
+        staking = _staking;
 
         // console.log("escalation count %s limit %s", donEscalationCount, donEscalationLimit);
         
@@ -319,19 +326,21 @@ contract Market {
             if (_for == 0) _reserveDoN0 -= amount;
             if (_for == 1) _reserveDoN1 -= amount;
         }else if (_outcome < 2) {
+            Staking memory _staking = staking;
             amount = stakes[_outcome][msg.sender];
             stakes[_outcome][msg.sender] = 0;
             if (_outcome == 0) {
                 _reserveDoN0 -= amount;
+                if (_staking.staker0 == msg.sender || _staking.staker0 == address(0)){
+                    amount += _reserveDoN1;
+                    _reserveDoN1 = 0;
+                }
             }else if (_outcome == 1) {
                 _reserveDoN1 -= amount;
-            }
-            if (amount == lastAmountStaked0){
-                amount += _reserveDoN1;
-                _reserveDoN1 = 0;
-            }else if (amount == lastAmountStaked1){
-                amount += _reserveDoN0;
-                _reserveDoN0 = 0;
+                if (_staking.staker1 == msg.sender || _staking.staker1 == address(0)){
+                    amount += _reserveDoN0;
+                    _reserveDoN0 = 0;
+                }
             }
         }
 
@@ -368,14 +377,14 @@ contract Market {
         require(msg.sender == _oracle);
     }
 
-    function trimStake(address to) external isMarketClosed {
-        uint _outcome = outcome;
-        if (_outcome == 0 && lastAmountStaked0 == 0){
-            IERC20(tokenC).transfer(to, reserveDoN1);
-            reserveDoN1 = 0;
-        }else if (_outcome == 1 && lastAmountStaked1 == 0){
-            IERC20(tokenC).transfer(to, reserveDoN0);
-            reserveDoN0 = 0;
-        }
-    }
+    // function trimStake(address to) external isMarketClosed {
+    //     uint _outcome = outcome;
+    //     if (_outcome == 0 && lastAmountStaked0 == 0){
+    //         IERC20(tokenC).transfer(to, reserveDoN1);
+    //         reserveDoN1 = 0;
+    //     }else if (_outcome == 1 && lastAmountStaked1 == 0){
+    //         IERC20(tokenC).transfer(to, reserveDoN0);
+    //         reserveDoN0 = 0;
+    //     }
+    // }
 }
