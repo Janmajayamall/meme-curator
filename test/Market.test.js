@@ -96,6 +96,7 @@ async function buyTrade(thisRef, a0, a1) {
 		thisRef,
 		thisRef.trader1.address
 	);
+	// console.log(tokenBalances, userTokenBalances);
 
 	var reservesO = await thisRef.market.getReservesOTokens();
 	var reservesC = await thisRef.market.getReservesTokenC();
@@ -618,9 +619,15 @@ describe("Market", function () {
 			// outcome should be 1
 			expect(await this.market.outcome()).to.be.eq(1);
 		});
+		// test 0
 
-		// test 0 escalation limit
-		it("Should transis", async function () {
+		// test 0 escalation limit & 0 buffer blocks -> desired result is market goes directly to result after expiry.
+		// i.e. buffer blocks
+	});
+
+	// test escalation limit == 0
+	describe("Escalation limit == 0. After market expiry market transitions directly to MarketResolve", async function () {
+		beforeEach(async function () {
 			// new market & oracle with escalation limit 0
 			await createOracleMultiSig(this, {
 				isActive: true,
@@ -630,7 +637,7 @@ describe("Market", function () {
 				expireAfterBlocks: "50",
 				donEscalationLimit: "0",
 				donBufferBlocks: "25",
-				resolutionBufferBlocks: "25",
+				resolutionBufferBlocks: "100",
 			});
 			await createNewMarket(
 				this,
@@ -643,27 +650,123 @@ describe("Market", function () {
 			await buyTrade(this, getBigNumber(0), getBigNumber(5));
 			await sellTrade(this, getBigNumber(0), getBigNumber(1));
 
+			// redeemWinning & setOutcome not allowed
+			await expect(redeemWining(this, 1)).to.be.revertedWith("FALSE MC");
+
 			// expire market
 			await advanceBlocksBy(50);
 
+			// outcome stake is not allowed, even market expiration
 			await expect(
 				stakeOutcome(this, 1, getBigNumber(2))
 			).to.revertedWith("FALSE STATE");
 
-			// stage should be still be Market Funded since Market closed modifier hasn't processed a valid call
+			// stage should be market funding
 			expect(await this.market.stage()).to.be.eq(1);
 
-			// reedWinning to call Market Closed modifier
-			await redeemWining(this, 1);
+			// redeemWinning is not allowed, since waiting for resolution or resolution expiry
+			await expect(redeemWining(this, 1)).to.be.revertedWith("FALSE MC");
 
-			// market stage should be Market Closed now
+			// advance blocks such that block number >= donBufferEndsAtBlock. redeemWinning still shouldn't be allowed since waiting for resolution or resolution expiry
+			await advanceBlocksBy(25); // 75
+			await expect(redeemWining(this, 1)).to.be.revertedWith("FALSE MC");
+		});
+
+		it("Should resolve after oracle sets outcome", async function () {
+			// outcome should be 2 right now
+			expect(await this.market.outcome()).to.be.eq(2);
+
+			// oracle sets market outcome to 0
+			await setOutcome(this, 0);
+
+			// advance blocks such that resolution period expires. Should not change to outcome to 1
+			advanceBlocksBy(25);
+
+			// market should be closed
 			expect(await this.market.stage()).to.be.eq(4);
 
-			// outcome should be 0
+			// redeem winning
+			expect(await redeemWining(this, 0));
+
+			// outcome should be set to 0
 			expect(await this.market.outcome()).to.be.eq(0);
 		});
 
-		// test 0 escalation limit & 0 buffer blocks -> desired result is market goes directly to result after expiry. 
-		// i.e. buffer blocks 
+		it("Should resolve to 1 after resolution period expires", async function () {
+			// expire resolution period {block is already 75, so increase by 25}, thus market automatically resolves to 1
+			advanceBlocksBy(25);
+
+			// oracle tries to set market outcome to 0 & fails silently (since it's a low level call in multi sig)
+			await setOutcome(this, 0);
+
+			// market stage should still be MarketFunded, since MarketClosed modifier hasn't been called yet
+			expect(await this.market.stage()).to.be.eq(1);
+
+			// redeem winning - calls MarketClosed Modifier
+			expect(await redeemWining(this, 1));
+
+			// market stage should be 4 (MarketClosed))
+			expect(await this.market.stage()).to.be.eq(4);
+
+			// outcome should be set
+			expect(await this.market.outcome()).to.be.eq(1);
+		});
+	});
+
+	// test MarketBuffer = 0
+	describe("donBufferBlocks == 0. After market expiry market transitions directly to Market Closed", async function () {
+		beforeEach(async function () {
+			// new market & oracle with donBufferBlocks = 0
+			await createOracleMultiSig(this, {
+				isActive: true,
+				feeNum: "3",
+				feeDenom: "100",
+				tokenC: this.memeToken.address,
+				expireAfterBlocks: "50",
+				donEscalationLimit: "0",
+				donBufferBlocks: "0",
+				resolutionBufferBlocks: "100",
+			});
+			await createNewMarket(
+				this,
+				getBigNumber(10),
+				ethers.utils.formatBytes32String("danwdna")
+			);
+
+			// tilting market towards one outcome i.e. 1
+			await buyTrade(this, getBigNumber(0), getBigNumber(5));
+			await buyTrade(this, getBigNumber(0), getBigNumber(5));
+			await sellTrade(this, getBigNumber(0), getBigNumber(1));
+
+			// advance blocks such that block number >= donBufferEndsAtBlock. redeemWinning still shouldn't be allowed since waiting for resolution or resolution expiry
+			await advanceBlocksBy(25); // 75
+			await expect(redeemWining(this, 1)).to.be.revertedWith("FALSE MC");
+		});
+
+		it("Should close market after market expiry with outcome set 1", async function () {
+			// expire market
+			await advanceBlocksBy(50);
+
+			// outcome stake is not allowed
+			await expect(
+				stakeOutcome(this, 1, getBigNumber(2))
+			).to.revertedWith("FALSE STATE");
+
+			// set outcome should not change anything & fails
+			await setOutcome(this, 0);
+			expect(await this.market.outcome()).to.be.eq(2); // showing that set outcome failed
+
+			// stage should be market funding
+			expect(await this.market.stage()).to.be.eq(1);
+
+			// redeemWinning - closes the market
+			await redeemWining(this, 1);
+
+			// market stage should be closed now
+			expect(await this.market.stage()).to.be.eq(4);
+
+			// outcome should be set to 1 now
+			expect(await this.market.outcome()).to.be.eq(1); // showing that set outcome failed
+		});
 	});
 });

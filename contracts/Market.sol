@@ -85,31 +85,40 @@ contract Market {
 
     modifier isMarketResolve(){
         Stages _stage = stage;
-        uint _resolutionEndsAtBlock = resolutionEndsAtBlock;
 
-        // if stage is Market funded & donEscalation limit zero, thus market directly goes to MarketResolve (skipping MarketBuffer)
-        if (_stage == Stages.MarketFunded && block.number >= expireAtBlock && donEscalationLimit == 0){
+        // if market expired and don escalation limit is zero, then market directly goes to MarketResolve (skipping MarketBuffer)
+        // Note if donEscalationLimit == 0 && donBufferBlocks == 0 then market closes after expiry, thus no Market Resolve
+        if (block.number >= expireAtBlock && donEscalationLimit == 0 && donBufferBlocks != 0){
             _stage = Stages.MarketResolve;
         }
 
         // stage should be MarketResolve & resolution time shouldn't have expired
-        require (_stage == Stages.MarketResolve && block.number < _resolutionEndsAtBlock, "FALSE STATE");
+        require (_stage == Stages.MarketResolve && block.number < resolutionEndsAtBlock, "FALSE MR");
         _;
     }
 
     modifier isMarketClosed() {
         Stages _stage = stage;
         console.log("Market closed modifier block number - %s, donBufferEndBlock time %s", block.number, donBufferEndsAtBlock);
-        // if stage is MarketBuffer | MarketFunded & donBuffer expired OR if stage is MarketResolve & resolution time expired
-        if ((_stage != Stages.MarketResolve && block.number >= donBufferEndsAtBlock)
-            || (_stage == Stages.MarketResolve && block.number >= resolutionEndsAtBlock)){
-            // TODO if market is funded & escalation limit == 0 & resolution period expired
-            setOutcomeByExpiry();
-            _stage = Stages.MarketClosed;
-            stage = Stages.MarketClosed;
+
+        uint _donEscalationLimit = donEscalationLimit;
+
+        
+        // when donBuffer && escalationLimit == 0, preference is given to donBuffer, that means market closes after expiration & does not waits for resolution
+        // when escalationLimit == 0 & donBuffer != 0 then donBuffer is ignored and market transitions to resolve stage right after expiration
+        // when donBuffer == 0 & escalationLimit != 0 then market closes right after expiration
+        if (_stage != Stages.MarketClosed){
+            if ((_stage != Stages.MarketResolve && block.number >= donBufferEndsAtBlock && (donBufferBlocks == 0 || _donEscalationLimit != 0))
+                || (block.number >= resolutionEndsAtBlock && _stage == Stages.MarketResolve)
+                || (block.number >= resolutionEndsAtBlock && _donEscalationLimit == 0) 
+            ){
+                setOutcomeByExpiry();
+                _stage = Stages.MarketClosed;
+                stage = Stages.MarketClosed;
+            }
         }
 
-        require (_stage == Stages.MarketClosed, "FALSE CLOSED");
+        require (_stage == Stages.MarketClosed, "FALSE MC");
         _;
     }
 
@@ -179,11 +188,11 @@ contract Market {
         reserveC += amount;
         stage = Stages.MarketFunded;
         uint _expireBufferBlocks = expireBufferBlocks;
-        expireAtBlock = block.number + _expireBufferBlocks;
-        donBufferEndsAtBlock = block.number + _expireBufferBlocks + donBufferBlocks;
-        resolutionEndsAtBlock = block.number + resolutionBufferBlocks; 
+        expireAtBlock = block.number + _expireBufferBlocks; 
+        donBufferEndsAtBlock = block.number + _expireBufferBlocks + donBufferBlocks; // pre-set buffer period expiry
+        resolutionEndsAtBlock = block.number + resolutionBufferBlocks; // pre-set resolution expiry, incase donEscalationLimit == 0
         
-        require(amount > 0, 'Funding amount zero');
+        require(amount > 0, 'AMOUNT 0');
     }
     
     function buy(uint amount0, uint amount1, address to) external isMarketFunded {
