@@ -1,6 +1,7 @@
 const { waffle, ethers } = require("hardhat");
 const { BigNumber } = ethers;
 const { expect } = require("chai");
+const { recoverAddress } = require("@ethersproject/transactions");
 
 function addBN(x, y) {
 	return BigNumber.from(x).add(BigNumber.from(y));
@@ -224,9 +225,115 @@ async function sellTrade(thisRef, a0, a1) {
 	// );
 }
 
+async function checkRedeemWinning(thisRef, _for) {
+	const tokenAddresses = await thisRef.market.getAddressOfTokens();
+	const tokenAddress = tokenAddresses[0];
+	const token0Address = tokenAddresses[1];
+	const token1Address = tokenAddresses[2];
+
+	// before redeeming
+	var tokenCBalance = await thisRef.memeToken.balanceOf(
+		thisRef.trader1.address
+	);
+	var tokenOBalance = 0;
+	if (_for == 0) {
+		tokenOBalance = await thisRef.OutcomeToken.attach(
+			token0Address
+		).balanceOf(thisRef.trader1.address);
+	} else if (_for == 1) {
+		tokenOBalance = await thisRef.OutcomeToken.attach(
+			token1Address
+		).balanceOf(thisRef.trader1.address);
+	}
+
+	console.log(`
+		*********REDEEM WINNING**************	
+		Before: 
+		TokenC Balance - ${tokenCBalance}
+		TokenO Balance - ${tokenOBalance} For - ${_for}
+	`);
+
+	await redeemWining(thisRef, _for);
+
+	var tokenCBalanceAfter = await thisRef.memeToken.balanceOf(
+		thisRef.trader1.address
+	);
+	// after redeeming
+	expect(tokenCBalanceAfter).to.eq(addBN(tokenCBalance, tokenOBalance));
+
+	console.log(`
+		After: 
+		TokenC Balance - ${tokenCBalanceAfter}
+		*********REDEEM WINNING ENDS**************	
+	`);
+}
+
+async function checkRedeemStake(thisRef, _for, user, expectedWinnings) {
+	const balance = await thisRef.memeToken.balanceOf(user.address);
+	console.log(`
+		*********REDEEM STAKE**************	
+		Before: 
+		TokenC Balance - ${balance} For - ${_for}
+	`);
+
+	// get reserves
+	const reserveDoN0 = await thisRef.market.reserveDoN0();
+	const reserveDoN1 = await thisRef.market.reserveDoN1();
+	const lastOutcomeStaked = await thisRef.market.lastOutcomeStaked();
+	const lastAmountStaked0 = await thisRef.market.lastAmountStaked0();
+	const lastAmountStaked1 = await thisRef.market.lastAmountStaked1();
+	const outcome = await thisRef.market.outcome();
+
+	// get stake amount
+	const stakeAmount = await thisRef.market.getStake(user.address, _for);
+	// check if _for == outcome
+	//
+
+	console.log(`
+		reserveDoN0 - ${reserveDoN0}
+		reserveDoN1 - ${reserveDoN1}
+		lastOutcomeStaked - ${lastOutcomeStaked}
+		lastAmountStaked0 - ${lastAmountStaked0}
+		lastAmountStaked1 - ${lastAmountStaked1}
+		outcome - ${outcome}
+		stakeAmount - ${stakeAmount}
+		expected winning - ${expectedWinnings}
+ 	`);
+
+	// var finalBalance = 0;
+
+	// if (outcome == 2) {
+	// 	finalBalance = addBN(balance, stakeAmount);
+	// } else if (outcome == 1 && _for == 1) {
+	// 	finalBalance = addBN(balance, stakeAmount);
+	// 	if (stakeAmount == lastAmountStaked1) {
+	// 		finalBalance = addBN(finalBalance, reserveDoN0);
+	// 	}
+	// } else if (outcome == 0 && _for == 0) {
+	// 	finalBalance = addBN(balance, stakeAmount);
+	// 	if (stakeAmount == lastAmountStaked0) {
+	// 		finalBalance = addBN(finalBalance, reserveDoN1);
+	// 	}
+	// }
+
+	// redeem stake
+	await thisRef.market.connect(user).redeemStake(_for);
+
+	// check whether stake redeem is correct or not
+	const afterBalance = await thisRef.memeToken.balanceOf(user.address);
+
+	console.log(`
+		After: 
+		TokenC Balance - ${afterBalance} For - ${_for}
+		Expected Balance - ${addBN(balance, expectedWinnings)}
+		*********REDEEM STAKE END**************	
+	`);
+
+	expect(afterBalance).to.eq(addBN(balance, expectedWinnings));
+}
+
 async function redeemWining(thisRef, _for) {
 	const tokenAddresses = await thisRef.market.getAddressOfTokens();
-	const tokenCAddress = tokenAddresses[0];
 	const token0Address = tokenAddresses[1];
 	const token1Address = tokenAddresses[2];
 	if (_for == 0) {
@@ -262,7 +369,7 @@ async function setOutcome(thisRef, to) {
 		.addTxSetMarketOutcome(to, thisRef.market.address);
 }
 
-async function stakeOutcome(thisRef, _for, amount) {
+async function stakeOutcome(thisRef, _for, amount, user = undefined) {
 	await transferTokens(
 		thisRef.memeToken,
 		thisRef.trader1,
@@ -270,8 +377,14 @@ async function stakeOutcome(thisRef, _for, amount) {
 		amount
 	);
 
+	if (!user) {
+		user = thisRef.trader1;
+	}
+
 	// stake
-	await thisRef.market.stakeOutcome(_for, thisRef.trader1.address);
+	await thisRef.market
+		.connect(user)
+		.stakeOutcome(_for, thisRef.trader1.address);
 }
 
 async function createOracleMultiSig(thisRef, oracleConfig) {
@@ -474,7 +587,7 @@ describe("Market", function () {
 			// redeem winning throws error
 			await expect(
 				redeemWining(this, 1, getBigNumber(5))
-			).to.be.revertedWith("FALSE STATE");
+			).to.be.revertedWith("FALSE MC");
 
 			// stake outcome throws error
 			await expect(
@@ -483,12 +596,13 @@ describe("Market", function () {
 
 			// redeem stake throws error
 			await expect(this.market.redeemStake(0)).to.be.revertedWith(
-				"FALSE STATE"
+				"FALSE MC"
 			);
 		});
 	});
 
 	describe("Market stage - Market Buffer", async function () {
+		return;
 		beforeEach(async function () {
 			// few trades
 			await buyTrade(this, getBigNumber(0), getBigNumber(5));
@@ -547,7 +661,7 @@ describe("Market", function () {
 			expect(await this.market.stage()).to.be.eq(3);
 		});
 
-		it("Should resolve market (i.e. Market closed) after few escalations which were followed by no escalation before ending don buffer", async function () {
+		it("Should resolve market to last staked outcome  after few escalations followed by don buffer expiration", async function () {
 			const donBufferBlocks = Number(this.oracleConfig.donBufferBlocks);
 			await stakeOutcome(this, 0, getBigNumber(2));
 			await advanceBlocksBy(donBufferBlocks - 10);
@@ -556,7 +670,7 @@ describe("Market", function () {
 			await stakeOutcome(this, 0, getBigNumber(8));
 			await advanceBlocksBy(donBufferBlocks - 4);
 
-			// market will close with outcome set as 0
+			// don buffer expires
 			await advanceBlocksBy(donBufferBlocks);
 
 			await expect(
@@ -576,57 +690,33 @@ describe("Market", function () {
 			expect(await this.market.outcome()).to.be.eq(0);
 		});
 
-		it("Should directly jump to Market Closed after market expiry since Buffer blocks are 0", async function () {
-			// new market & oracle with donBufferBlocks 0
-			await createOracleMultiSig(this, {
-				isActive: true,
-				feeNum: "3",
-				feeDenom: "100",
-				tokenC: this.memeToken.address,
-				expireAfterBlocks: "50",
-				donEscalationLimit: "5",
-				donBufferBlocks: "0",
-				resolutionBufferBlocks: "25",
-			});
-			await createNewMarket(
-				this,
-				getBigNumber(10),
-				ethers.utils.formatBytes32String("danwdna")
-			);
+		it("Should resolve market to outcome 1 after no escalation before buffer period expires", async function () {
+			const donBufferBlocks = Number(this.oracleConfig.donBufferBlocks);
+			// don buffer expires
+			await advanceBlocksBy(donBufferBlocks);
 
-			// tilting market towards one outcome i.e. 1
-			await buyTrade(this, getBigNumber(0), getBigNumber(5));
-			await buyTrade(this, getBigNumber(0), getBigNumber(5));
-			await sellTrade(this, getBigNumber(0), getBigNumber(1));
-
-			// expire market
-			await advanceBlocksBy(50);
-
-			// stage should still be Market Funded since no other modifier is called
-			expect(await this.market.stage()).to.be.eq(1);
-
-			// escalation should fail, since transition to Market Buffer stage not possible
+			// no staking allowed now
 			await expect(
-				stakeOutcome(this, 1, getBigNumber(2))
+				stakeOutcome(this, 1, getBigNumber(128))
 			).to.revertedWith("FALSE STATE");
 
-			// reedWinning to call Market Closed modifier
+			// stage should be still be Market Funded since Market Closed modifier hasn't processed a valid call
+			expect(await this.market.stage()).to.be.eq(1);
+
+			// this calls Market Closed modifier, thus closing the market
 			await redeemWining(this, 1);
 
-			// stage should Market Closed
+			// market stage should be Market Closed now
 			expect(await this.market.stage()).to.be.eq(4);
 
-			// outcome should be 1
+			// outcome should be 1, since market was tilted in 1s direction
 			expect(await this.market.outcome()).to.be.eq(1);
 		});
-		// test 0
-
-		// test 0 escalation limit & 0 buffer blocks -> desired result is market goes directly to result after expiry.
-		// i.e. buffer blocks
 	});
 
 	// test escalation limit == 0
 	describe("Escalation limit == 0. After market expiry market transitions directly to MarketResolve", async function () {
+		return;
 		beforeEach(async function () {
 			// new market & oracle with escalation limit 0
 			await createOracleMultiSig(this, {
@@ -713,8 +803,9 @@ describe("Market", function () {
 		});
 	});
 
-	// test MarketBuffer = 0
+	// test donBufferBlocks == 0; Also checks that preference is given to donBufferBlocks when escalation limit == zero as well (i.e. Market transitions to Market Closed, not Market Resolve after expiry)
 	describe("donBufferBlocks == 0. After market expiry market transitions directly to Market Closed", async function () {
+		return;
 		beforeEach(async function () {
 			// new market & oracle with donBufferBlocks = 0
 			await createOracleMultiSig(this, {
@@ -737,10 +828,6 @@ describe("Market", function () {
 			await buyTrade(this, getBigNumber(0), getBigNumber(5));
 			await buyTrade(this, getBigNumber(0), getBigNumber(5));
 			await sellTrade(this, getBigNumber(0), getBigNumber(1));
-
-			// advance blocks such that block number >= donBufferEndsAtBlock. redeemWinning still shouldn't be allowed since waiting for resolution or resolution expiry
-			await advanceBlocksBy(25); // 75
-			await expect(redeemWining(this, 1)).to.be.revertedWith("FALSE MC");
 		});
 
 		it("Should close market after market expiry with outcome set 1", async function () {
@@ -760,7 +847,7 @@ describe("Market", function () {
 			expect(await this.market.stage()).to.be.eq(1);
 
 			// redeemWinning - closes the market
-			await redeemWining(this, 1);
+			await checkRedeemWinning(this, 1);
 
 			// market stage should be closed now
 			expect(await this.market.stage()).to.be.eq(4);
@@ -769,4 +856,57 @@ describe("Market", function () {
 			expect(await this.market.outcome()).to.be.eq(1); // showing that set outcome failed
 		});
 	});
+
+	describe("Market stage - Market Closed", async function () {
+		beforeEach(async function () {
+			// few trades
+			await buyTrade(this, getBigNumber(0), getBigNumber(5));
+			await buyTrade(this, getBigNumber(0), getBigNumber(5));
+			await buyTrade(this, getBigNumber(3), getBigNumber(0));
+			await sellTrade(this, getBigNumber(0), getBigNumber(1));
+
+			// expire market
+			await advanceBlocksBy(this.oracleConfig.expireAfterBlocks);
+		});
+
+		it("Should resolve in favour of last staked outcome by the oracle", async function () {
+			await stakeOutcome(this, 1, getBigNumber(2), this.trader2);
+			await stakeOutcome(this, 0, getBigNumber(4), this.trader2);
+			await stakeOutcome(this, 1, getBigNumber(8), this.trader2);
+			await stakeOutcome(this, 0, getBigNumber(16), this.trader1);
+			await stakeOutcome(this, 0, getBigNumber(32), this.trader1);
+
+			// oracles resolves the market to 0 - 3% oracle fee
+			await setOutcome(this, 0);
+			console.log(
+				`${getBigNumber((16 + 32 + 10 * 0.97) * 100).div(100)}`
+			);
+			// redeem stake
+			await checkRedeemStake(
+				this,
+				0,
+				this.trader1,
+				getBigNumber((16 + 32 + 10 * 0.97) * 100).div(100)
+			); // should win
+			await checkRedeemStake(this, 0, this.trader2, getBigNumber(4)); // should get 4 back
+			await checkRedeemStake(this, 0, this.trader2, getBigNumber(0)); // should get 0 back for stake in outcome 1
+
+			// outcome should be set to 0
+			expect(await this.market.outcome()).to.be.eq(0);
+
+			// redeem winning
+			await checkRedeemWinning(this, 0);
+		});
+	});
+
+	// describe market is closed
+	/* 
+	1. normal trades, hit escalation, market resolve by oracle in favour of last staked
+	2. normal trades, hit escalation, market resolve by oracle in opposition of last staked
+	3. normal trades, hit escalation, market resolve by oracle in opposition of last staked, but opposition stakes are zero
+	4. normal trades, hit escalation, oracle period expires & market sets to last staked outcome
+	5. normal trades, escalations, buffer expired, market resolves in favor of last staked outcome
+	6. normal trades, no escalation, buffer expired, market resolves in favor of more probable outcome
+	   Also check situations in which resolutions == 2
+	*/
 });

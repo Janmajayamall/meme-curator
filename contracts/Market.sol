@@ -38,11 +38,11 @@ contract Market {
     Stages public stage;
 
     // DON related
-    uint256 reserveDoN0;
-    uint256 reserveDoN1;
-    uint lastOutcomeStaked = 2;
-    uint lastAmountStaked0;
-    uint lastAmountStaked1;
+    uint256 public reserveDoN0;
+    uint256 public reserveDoN1;
+    uint public lastOutcomeStaked = 2;
+    uint public lastAmountStaked0;
+    uint public lastAmountStaked1;
     uint donEscalationCount;
     uint donEscalationLimit;
     uint donBufferEndsAtBlock;
@@ -99,7 +99,7 @@ contract Market {
 
     modifier isMarketClosed() {
         Stages _stage = stage;
-        console.log("Market closed modifier block number - %s, donBufferEndBlock time %s", block.number, donBufferEndsAtBlock);
+        // console.log("Market closed modifier block number - %s, donBufferEndBlock time %s", block.number, donBufferEndsAtBlock);
 
         uint _donEscalationLimit = donEscalationLimit;
 
