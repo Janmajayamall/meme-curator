@@ -10,6 +10,7 @@ interface IMarket {
     function getStake(address _of, uint _for) external view returns (uint);
     function getStaking() external view returns (uint, uint, address, address);
 
+    function setOutcomeTokens(address _token0, address _token1) external;
     function fund() external;
     function buy(uint amount0, uint amount1, address to) external;   
     function sell(uint amount, address to) external;

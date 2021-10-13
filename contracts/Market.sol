@@ -29,7 +29,7 @@ contract Market is IMarket {
 
     address token0;
     address token1;
-    address tokenC;
+    address public tokenC;
 
     address factory;
     bytes32 identifier;
@@ -62,7 +62,7 @@ contract Market is IMarket {
 
 
     modifier isMarketCreated() {
-        require (stage == Stages.MarketCreated);
+        require (stage == Stages.MarketCreated && token0 != address(0));
         _;
     }
 
@@ -182,6 +182,12 @@ contract Market is IMarket {
                 outcome = 2;
             }
         }
+    }
+
+    function setOutcomeTokens(address _token0, address _token1) external override {
+        require(stage == Stages.MarketCreated && token0 == address(0));
+        token0 = _token0;
+        token1 = _token1;
     }
 
     function fund() external override isMarketCreated {

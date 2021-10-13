@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 
 import './libraries/TransferHelper.sol';
 import './MarketDeployer.sol';
+import './OutcomeToken.sol';
+import './interfaces/IMarket.sol';
 
 contract MarketFactory {
     // creator => oracle => identifier
@@ -22,11 +24,14 @@ contract MarketFactory {
         require(markets[_creator][_oracle][_identifier] == address(0), 'Market Exists');
 
         // deploy
-        address marketAddress = MarketDeployer(deployer).deploy(_creator, _oracle, _identifier);
+        (address marketAddress, address tokenC) = MarketDeployer(deployer).deploy(_creator, _oracle, _identifier);
 
-        // fund market
-        // TransferHelper.safeTransferFrom(_tokenC, msg.sender, marketAddress, _fundingAmount);
-        // Market(marketAddress).fund();
+        // fund
+        address token0 = address(new OutcomeToken(marketAddress));
+        address token1 = address(new OutcomeToken(marketAddress));
+        IMarket(marketAddress).setOutcomeTokens(token0, token1);
+        TransferHelper.safeTransferFrom(tokenC, msg.sender, marketAddress, _fundingAmount);
+        Market(marketAddress).fund();
         
         markets[_creator][_oracle][_identifier] = marketAddress;
     }
