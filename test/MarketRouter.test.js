@@ -7,6 +7,8 @@ const {
 	subBN,
 	getBigNumber,
 	advanceBlocksBy,
+	approveTokens,
+	getTokenBalances,
 } = require("./shared/utils");
 
 async function buyKnowTokensWithUnknownAmountC(
@@ -118,6 +120,7 @@ describe("MarketRouter", async function () {
 		this.OracleMultiSig = await ethers.getContractFactory("OracleMultiSig");
 		this.MemeToken = await ethers.getContractFactory("MemeToken");
 		this.MathTest = await ethers.getContractFactory("MathTest");
+		this.OutcomeToken = await ethers.getContractFactory("OutcomeToken");
 
 		// prepare accounts
 		this.signers = await ethers.getSigners();
@@ -210,15 +213,254 @@ describe("MarketRouter", async function () {
 		expect(contractAddress).to.eq(this.market.address);
 	});
 
-    /* 
-    1. Buy tokens without violating slippage
-     */
+	describe("#buyExactTokensForMaxCTokens", async function () {
+		it("Should buy exact tokens without trouble", async function () {
+			const reserves = await this.market.getReservesOTokens();
+			const maxAmountC = await this.mathTest.getAmountCToBuyTokens(
+				getBigNumber(10),
+				getBigNumber(0),
+				reserves[0],
+				reserves[1]
+			);
 
-	it("Balanced trades", async function () {
-		// await this.mathTest.fund(getBigNumber(10));
-		// await buyKnowTokensWithUnknownAmountC(this, 0, 5);
-		// await sellKnowTokensForUnknownAmountC(this, 0, 4);
-		// await sellKnowTokensForUnknownAmountC(this, 0, 57);
-		// await sellUnknownTokensForKnowAmountC(this, 0, 0, 5);
+			// place order
+			await approveTokens(
+				this.memeToken,
+				this.trader1,
+				this.marketRouter.address,
+				maxAmountC
+			);
+			await this.marketRouter
+				.connect(this.trader1)
+				.buyExactTokensForMaxCTokens(
+					getBigNumber(10),
+					getBigNumber(0),
+					maxAmountC,
+					this.marketCreator.address,
+					this.oracleMultiSig.address,
+					this.identifier
+				);
+
+			// check outcome token balances
+			const tokenBalances = await getTokenBalances(
+				this,
+				this.trader1.address
+			);
+
+			// check that tokens were received
+			expect(tokenBalances[1]).to.eq(getBigNumber(10));
+			expect(tokenBalances[2]).to.eq(getBigNumber(0));
+		});
+
+		it("Should fail in buying because slippage violated", async function () {
+			const reserves = await this.market.getReservesOTokens();
+			var maxAmountC = await this.mathTest.getAmountCToBuyTokens(
+				getBigNumber(10),
+				getBigNumber(0),
+				reserves[0],
+				reserves[1]
+			);
+			// reduce maxAmount by bit
+			maxAmountC = BigNumber.from(maxAmountC).mul(97).div(100);
+
+			// place order
+			await approveTokens(
+				this.memeToken,
+				this.trader1,
+				this.marketRouter.address,
+				maxAmountC
+			);
+			await expect(
+				this.marketRouter
+					.connect(this.trader1)
+					.buyExactTokensForMaxCTokens(
+						getBigNumber(10),
+						getBigNumber(0),
+						maxAmountC,
+						this.marketCreator.address,
+						this.oracleMultiSig.address,
+						this.identifier
+					)
+			).to.revertedWith("TRADE: INVALID");
+		});
+
+		// it("Should revert since market does not exists", async function () {
+		// 	await expect(
+		// 		this.marketRouter
+		// 			.connect(this.trader1)
+		// 			.buyExactTokensForMaxCTokens(
+		// 				getBigNumber(10),
+		// 				getBigNumber(0),
+		// 				getBigNumber(20),
+		// 				this.marketCreator.address,
+		// 				this.oracleMultiSig.address,
+		// 				ethers.utils.formatBytes32String("auiwqa")
+		// 			)
+		// 	).to.throw();
+		// });
+	});
+
+	describe("#sellExactTokensForMinCTokens", async function () {
+		async function buyOrder(thisRef) {
+			// buy order
+			var reserves = await thisRef.market.getReservesOTokens();
+			var maxAmountInC = await thisRef.mathTest.getAmountCToBuyTokens(
+				getBigNumber(10),
+				getBigNumber(3),
+				reserves[0],
+				reserves[1]
+			);
+			await approveTokens(
+				thisRef.memeToken,
+				thisRef.trader1,
+				thisRef.marketRouter.address,
+				maxAmountInC
+			);
+			await thisRef.marketRouter
+				.connect(thisRef.trader1)
+				.buyExactTokensForMaxCTokens(
+					getBigNumber(10),
+					getBigNumber(0),
+					maxAmountInC,
+					thisRef.marketCreator.address,
+					thisRef.oracleMultiSig.address,
+					thisRef.identifier
+				);
+		}
+
+		it("Should sell exact tokens without trouble", async function () {
+			await buyOrder(this);
+			// sell order
+			const tokenBalancesBefore = await getTokenBalances(
+				this,
+				this.trader1.address
+			);
+			var reserves = await this.market.getReservesOTokens();
+			const tokenAddresses = await this.market.getAddressOfTokens();
+			var minAmountOutC = await this.mathTest.getAmountCBySellTokens(
+				getBigNumber(5),
+				getBigNumber(0),
+				reserves[0],
+				reserves[1]
+			);
+			await approveTokens(
+				this.OutcomeToken.attach(tokenAddresses[1]),
+				this.trader1,
+				this.marketRouter.address,
+				getBigNumber(5)
+			);
+			await this.marketRouter
+				.connect(this.trader1)
+				.sellExactTokensForMinCTokens(
+					getBigNumber(5),
+					getBigNumber(0),
+					minAmountOutC,
+					this.marketCreator.address,
+					this.oracleMultiSig.address,
+					this.identifier
+				);
+
+			// check outcome token balances
+			const tokenBalancesAfter = await getTokenBalances(
+				this,
+				this.trader1.address
+			);
+
+			// check that tokens were received
+			expect(subBN(tokenBalancesAfter[0], tokenBalancesBefore[0])).to.eq(
+				minAmountOutC
+			);
+			expect(subBN(tokenBalancesBefore[1], tokenBalancesAfter[1])).to.eq(
+				getBigNumber(5)
+			);
+			expect(subBN(tokenBalancesBefore[2], tokenBalancesAfter[2])).to.eq(
+				getBigNumber(0)
+			);
+		});
+
+		it("Should fail in selling since slippage is violated", async function () {
+			await buyOrder(this);
+			// sell order
+			const tokenBalancesBefore = await getTokenBalances(
+				this,
+				this.trader1.address
+			);
+			var reserves = await this.market.getReservesOTokens();
+			const tokenAddresses = await this.market.getAddressOfTokens();
+			var minAmountOutC = await this.mathTest.getAmountCBySellTokens(
+				getBigNumber(5),
+				getBigNumber(0),
+				reserves[0],
+				reserves[1]
+			);
+			// add value to minAmountOutC (by 0.001%) such that slippage violates
+			minAmountOutC = BigNumber.from(minAmountOutC).mul(1001).div(1000);
+
+			await approveTokens(
+				this.OutcomeToken.attach(tokenAddresses[1]),
+				this.trader1,
+				this.marketRouter.address,
+				getBigNumber(5)
+			);
+			await expect(
+				this.marketRouter
+					.connect(this.trader1)
+					.sellExactTokensForMinCTokens(
+						getBigNumber(5),
+						getBigNumber(0),
+						minAmountOutC,
+						this.marketCreator.address,
+						this.oracleMultiSig.address,
+						this.identifier
+					)
+			).to.revertedWith("TRADE: INVALID");
+		});
+
+		// it("Should fail in buying because slippage violated", async function () {
+		// 	const reserves = await this.market.getReservesOTokens();
+		// 	var maxAmountC = await this.mathTest.getAmountCToBuyTokens(
+		// 		getBigNumber(10),
+		// 		getBigNumber(0),
+		// 		reserves[0],
+		// 		reserves[1]
+		// 	);
+		// 	// reduce maxAmount by bit
+		// 	maxAmountC = BigNumber.from(maxAmountC).mul(97).div(100);
+
+		// 	// place order
+		// 	await approveTokens(
+		// 		this.memeToken,
+		// 		this.trader1,
+		// 		this.marketRouter.address,
+		// 		maxAmountC
+		// 	);
+		// 	await expect(
+		// 		this.marketRouter
+		// 			.connect(this.trader1)
+		// 			.buyExactTokensForMaxCTokens(
+		// 				getBigNumber(10),
+		// 				getBigNumber(0),
+		// 				maxAmountC,
+		// 				this.marketCreator.address,
+		// 				this.oracleMultiSig.address,
+		// 				this.identifier
+		// 			)
+		// 	).to.revertedWith("TRADE: INVALID");
+		// });
+
+		// it("Should revert since market does not exists", async function () {
+		// 	await expect(
+		// 		this.marketRouter
+		// 			.connect(this.trader1)
+		// 			.buyExactTokensForMaxCTokens(
+		// 				getBigNumber(10),
+		// 				getBigNumber(0),
+		// 				getBigNumber(20),
+		// 				this.marketCreator.address,
+		// 				this.oracleMultiSig.address,
+		// 				ethers.utils.formatBytes32String("auiwqa")
+		// 			)
+		// 	).to.throw();
+		// });
 	});
 });

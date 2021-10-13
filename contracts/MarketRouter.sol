@@ -38,7 +38,7 @@ contract MarketRouter {
         (address tokenC, ,) = Market(market).getAddressOfTokens();
         (uint _reserve0, uint _reserve1) = Market(market).getReservesOTokens();
         uint amountIn = Math.getAmountCToBuyTokens(amountOutToken0, amountOutToken1, _reserve0, _reserve1);
-        require(amountInCMax >= amountIn);
+        require(amountInCMax >= amountIn, "TRADE: INVALID");
         TransferHelper.safeTransferFrom(tokenC, msg.sender, market, amountIn);
         Market(market).buy(amountOutToken0, amountOutToken1, msg.sender);
     }
@@ -72,10 +72,10 @@ contract MarketRouter {
         (uint _reserve0, uint _reserve1) = Market(market).getReservesOTokens();
 
         uint amountOutTokenC = Math.getAmountCBySellTokens(amountInToken0, amountInToken1, _reserve0, _reserve1);
-        require(amountOutTokenC >= amountOutTokenCMin);
+        require(amountOutTokenC >= amountOutTokenCMin, "TRADE: INVALID");
 
-        TransferHelper.safeTransfer(token0, market, amountInToken0);
-        TransferHelper.safeTransfer(token1, market, amountInToken1);
+        TransferHelper.safeTransferFrom(token0, msg.sender, market, amountInToken0);
+        TransferHelper.safeTransferFrom(token1, msg.sender, market, amountInToken1);
         Market(market).sell(amountOutTokenC, msg.sender);
     }
 

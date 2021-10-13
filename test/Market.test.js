@@ -7,6 +7,7 @@ const {
 	subBN,
 	getBigNumber,
 	advanceBlocksBy,
+	getTokenBalances,
 } = require("./shared/utils");
 
 async function checkTokenBalances(thisRef, eTokenC, eToken0, eToken1, address) {
@@ -24,19 +25,6 @@ async function checkTokenBalances(thisRef, eTokenC, eToken0, eToken1, address) {
 	expect(
 		await thisRef.OutcomeToken.attach(token1Address).balanceOf(address)
 	).to.eq(eToken1);
-}
-
-async function getTokenBalances(thisRef, address) {
-	// check token balances of market
-	const tokenAddresses = await thisRef.market.getAddressOfTokens();
-	const tokenCAddress = tokenAddresses[0];
-	const token0Address = tokenAddresses[1];
-	const token1Address = tokenAddresses[2];
-	return Promise.all([
-		thisRef.MemeToken.attach(tokenCAddress).balanceOf(address),
-		thisRef.OutcomeToken.attach(token0Address).balanceOf(address),
-		thisRef.OutcomeToken.attach(token1Address).balanceOf(address),
-	]);
 }
 
 async function checkReservesTokenC(
@@ -70,10 +58,6 @@ async function logReservesOTokens(thisRef) {
 
 async function transferTokens(contract, owner, toAddress, amount) {
 	await contract.connect(owner).transfer(toAddress, amount);
-}
-
-async function approveTokens(contract, owner, toAddress, amount) {
-	await contract.connect(owner).approve(toAddress, amount);
 }
 
 async function checkOracleSetOutcomeAndFee(thisRef, outcome, expectedFee) {
