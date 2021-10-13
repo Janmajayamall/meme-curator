@@ -980,6 +980,74 @@ describe("Market", function () {
 			await checkRedeemStake(this, 1, this.trader2, getBigNumber(0)); // just checking for double calls
 			await checkRedeemStake(this, 0, this.trader2, getBigNumber(0)); // just checking for double calls
 
+			// outcome should be set to 1
+			expect(await this.market.outcome()).to.be.eq(1);
+
+			// redeem winning
+			const tokenBalances = await getTokenBalances(
+				this,
+				this.trader1.address
+			);
+			await checkRedeemWinning(this, 1, this.trader1, tokenBalances[2]);
+		});
+
+		it("Should resolve in favour of last staked outcome since oracle failed to set outcome before expiry", async function () {
+			await stakeOutcome(this, 0, getBigNumber(2), this.trader1);
+			await stakeOutcome(this, 1, getBigNumber(4), this.trader2);
+			await stakeOutcome(this, 0, getBigNumber(8), this.trader1);
+			await stakeOutcome(this, 1, getBigNumber(16), this.trader2);
+			await stakeOutcome(this, 0, getBigNumber(32), this.trader1);
+
+			// expire resolution buffer
+			await advanceBlocksBy(this.oracleConfig.resolutionBufferBlocks);
+
+			// oracle set outcome fails, and they receive no fee
+			await checkOracleSetOutcomeAndFee(this, 1, 0);
+
+			// redeem stake
+			await checkRedeemStake(
+				this,
+				0,
+				this.trader1,
+				getBigNumber(2 + 8 + 32 + 20) // trader1 won since they staked the last & market resolution period expired
+			); // should win since it's free money
+			await checkRedeemStake(this, 0, this.trader1, getBigNumber(0));
+			await checkRedeemStake(this, 1, this.trader2, getBigNumber(0));
+
+			// outcome should be set to 0
+			expect(await this.market.outcome()).to.be.eq(0);
+
+			// redeem winning
+			const tokenBalances = await getTokenBalances(
+				this,
+				this.trader1.address
+			);
+			await checkRedeemWinning(this, 0, this.trader1, tokenBalances[1]);
+		});
+
+		it("Should resolve in favour of last staked outcome since buffer period expired", async function () {
+			await stakeOutcome(this, 0, getBigNumber(2), this.trader1);
+			await stakeOutcome(this, 1, getBigNumber(4), this.trader2);
+			await stakeOutcome(this, 0, getBigNumber(8), this.trader1);
+			await stakeOutcome(this, 1, getBigNumber(16), this.trader2);
+
+			// expire resolution buffer
+			await advanceBlocksBy(this.oracleConfig.donBufferBlocks);
+
+			// oracle set outcome fails, and they receive no fee
+			await checkOracleSetOutcomeAndFee(this, 1, 0);
+
+			// redeem stake
+			await checkRedeemStake(
+				this,
+				1,
+				this.trader2,
+				getBigNumber(20 + 10) // trader1 won since they staked the last & market resolution period expired
+			); // should win since it's free money
+			await checkRedeemStake(this, 1, this.trader1, getBigNumber(0));
+			await checkRedeemStake(this, 0, this.trader1, getBigNumber(0));
+			await checkRedeemStake(this, 1, this.trader2, getBigNumber(0));
+
 			// outcome should be set to 0
 			expect(await this.market.outcome()).to.be.eq(1);
 
@@ -990,6 +1058,71 @@ describe("Market", function () {
 			);
 			await checkRedeemWinning(this, 1, this.trader1, tokenBalances[2]);
 		});
+
+		it("Should resolve in favour of outcome high in demand since buffer period expired with no stakes", async function () {
+			// expire resolution buffer with not staking
+			await advanceBlocksBy(this.oracleConfig.donBufferBlocks);
+
+			// oracle set outcome fails, and they receive no fee
+			await checkOracleSetOutcomeAndFee(this, 1, 0);
+
+			// market stage should still be MarketFunded
+			expect(await this.market.stage()).to.eq(1);
+
+			// redeem stake is zero
+			await checkRedeemStake(this, 1, this.trader1, getBigNumber(0));
+			await checkRedeemStake(this, 0, this.trader2, getBigNumber(0));
+
+			// redeem winning. Also closes the market by setting the outcome to 1
+			const tokenBalances = await getTokenBalances(
+				this,
+				this.trader1.address
+			);
+			await checkRedeemWinning(this, 1, this.trader1, tokenBalances[2]);
+
+			// outcome should be set to 0
+			expect(await this.market.outcome()).to.be.eq(1);
+		});
+
+		it("Should resolve to 2 by the oracle & stakes will be redeemed at full value & winnings will be redeemed at 50%", async function () {
+			await stakeOutcome(this, 0, getBigNumber(2), this.trader1);
+			await stakeOutcome(this, 1, getBigNumber(4), this.trader2);
+			await stakeOutcome(this, 0, getBigNumber(8), this.trader1);
+			await stakeOutcome(this, 1, getBigNumber(16), this.trader2);
+			await stakeOutcome(this, 0, getBigNumber(32), this.trader1);
+
+			// oracle resolves outcome to 2, thus they get 0 fee
+			await checkOracleSetOutcomeAndFee(this, 2, 0);
+
+			// redeem stake
+			await checkRedeemStake(this, 0, this.trader1, getBigNumber(42)); // should get whatever they staked back
+			await checkRedeemStake(this, 1, this.trader2, getBigNumber(20)); // should get whatever they staked back
+			await checkRedeemStake(this, 0, this.trader1, getBigNumber(0));
+
+			// outcome should be set to 2
+			expect(await this.market.outcome()).to.be.eq(2);
+
+			// Redeem winning; Should only get back 50% of the respective outcome token balance since outcome is set to 2
+			const tokenBalances = await getTokenBalances(
+				this,
+				this.trader1.address
+			);
+			console.log(tokenBalances);
+			await checkRedeemWinning(
+				this,
+				1,
+				this.trader1,
+				BigNumber.from(tokenBalances[2]).div(2)
+			);
+			await checkRedeemWinning(
+				this,
+				0,
+				this.trader1,
+				BigNumber.from(tokenBalances[1]).div(2)
+			);
+		});
+
+		it("Should resolve to 2 after buffer period expiry & no escalations & reserves of both outcomes are equal", async function () {});
 	});
 
 	// describe market is closed
@@ -1003,3 +1136,9 @@ describe("Market", function () {
 	   Also check situations in which resolutions == 2
 	*/
 });
+
+/* 
+1. Finish testing for redeem rewards & stakes; 
+2. Write tests for market router
+3. Figure out events 
+*/

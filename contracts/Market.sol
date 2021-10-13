@@ -105,7 +105,7 @@ contract Market {
 
     modifier isMarketClosed() {
         Stages _stage = stage;
-        // console.log("Market closed modifier block number - %s, donBufferEndBlock time %s", block.number, donBufferEndsAtBlock);
+        console.log("Market closed modifier block number - %s, donBufferEndBlock time %s", block.number, donBufferEndsAtBlock);
 
         uint _donEscalationLimit = donEscalationLimit;
 
