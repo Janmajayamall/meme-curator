@@ -504,7 +504,6 @@ describe("Market", function () {
 	});
 
 	describe("Market stage - Market Funded", async function () {
-		return;
 		beforeEach(async function () {});
 
 		it("Should be funded", async function () {
@@ -619,7 +618,6 @@ describe("Market", function () {
 	});
 
 	describe("Market stage - Market Buffer", async function () {
-		return;
 		beforeEach(async function () {
 			// few trades
 			await buyTrade(this, getBigNumber(0), getBigNumber(5));
@@ -733,7 +731,6 @@ describe("Market", function () {
 
 	// test escalation limit == 0
 	describe("Escalation limit == 0. After market expiry market transitions directly to MarketResolve", async function () {
-		return;
 		beforeEach(async function () {
 			// new market & oracle with escalation limit 0
 			await createOracleMultiSig(this, {
@@ -822,7 +819,6 @@ describe("Market", function () {
 
 	// test donBufferBlocks == 0; Also checks that preference is given to donBufferBlocks when escalation limit == zero as well (i.e. Market transitions to Market Closed, not Market Resolve after expiry)
 	describe("donBufferBlocks == 0. After market expiry market transitions directly to Market Closed", async function () {
-		return;
 		beforeEach(async function () {
 			// new market & oracle with donBufferBlocks = 0
 			await createOracleMultiSig(this, {
@@ -1124,17 +1120,6 @@ describe("Market", function () {
 
 		it("Should resolve to 2 after buffer period expiry & no escalations & reserves of both outcomes are equal", async function () {});
 	});
-
-	// describe market is closed
-	/* 
-	1. normal trades, hit escalation, market resolve by oracle in favour of last staked
-	2. normal trades, hit escalation, market resolve by oracle in opposition of last staked
-	3. normal trades, hit escalation, market resolve by oracle in opposition of last staked, but opposition stakes are zero
-	4. normal trades, hit escalation, oracle period expires & market sets to last staked outcome
-	5. normal trades, escalations, buffer expired, market resolves in favor of last staked outcome
-	6. normal trades, no escalation, buffer expired, market resolves in favor of more probable outcome
-	   Also check situations in which resolutions == 2
-	*/
 });
 
 /* 
