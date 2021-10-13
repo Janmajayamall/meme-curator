@@ -19,18 +19,17 @@ contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
 
     constructor(address[] memory _owners, uint _required, uint maxCount) MultiSigWallet(_owners, _required, maxCount) {}
 
-    function getMarketParams() external view override returns (bool, uint, uint, address, uint, uint, uint, uint){
-        // TODO organise this properly
-        return (
-            isActive, 
+    function getMarketParams() external view override returns (bool _isActive, address _tokenC, uint[6] memory _details){
+        _isActive = isActive;
+        _tokenC = tokenC;
+        _details = [
             fee.numerator,
             fee.denominator,
-            tokenC,
             expireAfterBlocks,
-            resolutionBufferBlocks,
             donBufferBlocks,
-            donEscalationLimit
-        );
+            donEscalationLimit,
+            resolutionBufferBlocks
+        ];
     }
 
     function setupOracle(bool _isActive, uint _feeNum, uint _feeDenom, address _tokenC, uint _expireAfterBlocks, uint _donEscalationLimit, uint _donBufferBlocks, uint _resolutionBufferBlocks) external {

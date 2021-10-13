@@ -237,7 +237,7 @@ contract MultiSigWallet {
             Transaction storage txn = transactions[transactionId];
             txn.executed = true;
             (bool success,) = txn.destination.call{value: txn.value}(txn.data);
-            console.log("tx with id %s is executed with success %s", transactionId, success);
+            // console.log("tx with id %s is executed with success %s", transactionId, success);
             if (success == true){
                 emit Execution(transactionId);
             } else {

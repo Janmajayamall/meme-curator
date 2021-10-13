@@ -3,14 +3,11 @@
 pragma solidity ^0.8.0;
 
 import './OutcomeToken.sol';
-import './libraries/SafeMath.sol';
 import './MarketFactory.sol';
 import './MarketDeployer.sol';
-import 'hardhat/console.sol';
+import './interfaces/IMarket.sol';
 
-contract Market {
-    using SafeMath for uint;
-
+contract Market is IMarket {
     enum Stages {
         MarketCreated,
         MarketFunded,
@@ -30,12 +27,12 @@ contract Market {
     uint256 reserve1;
     uint256 reserveC;
 
-    address immutable token0;
-    address immutable token1;
-    address immutable tokenC;
+    address token0;
+    address token1;
+    address tokenC;
 
-    address immutable factory;
-    bytes32 immutable identifier;
+    address factory;
+    bytes32 identifier;
     uint expireAtBlock;
     uint expireBufferBlocks;
     address creator;
@@ -45,10 +42,10 @@ contract Market {
     Stages public stage;
 
     // DON related
-    uint256 public reserveDoN0;
-    uint256 public reserveDoN1;
-    uint public lastOutcomeStaked = 2;
-    Staking public staking;
+    uint256 reserveDoN0;
+    uint256 reserveDoN1;
+    uint lastOutcomeStaked = 2;
+    Staking staking;
     uint donEscalationCount;
     uint donEscalationLimit;
     uint donBufferEndsAtBlock;
@@ -60,8 +57,9 @@ contract Market {
     address oracle;
     uint resolutionBufferBlocks;
     uint resolutionEndsAtBlock;
-    uint immutable oracleFeeNumerator;
-    uint immutable oracleFeeDenominator;
+    uint oracleFeeNumerator;
+    uint oracleFeeDenominator;
+
 
     modifier isMarketCreated() {
         require (stage == Stages.MarketCreated);
@@ -108,7 +106,6 @@ contract Market {
 
         uint _donEscalationLimit = donEscalationLimit;
 
-        
         // when donBuffer && escalationLimit == 0, preference is given to donBuffer, that means market closes after expiration & does not waits for resolution
         // when escalationLimit == 0 & donBuffer != 0 then donBuffer is ignored and market transitions to resolve stage right after expiration
         // when donBuffer == 0 & escalationLimit != 0 then market closes right after expiration
@@ -128,34 +125,45 @@ contract Market {
     }
 
     constructor(){
-        (factory, creator, oracle, identifier, oracleFeeNumerator, oracleFeeDenominator, tokenC, expireBufferBlocks, donBufferBlocks, donEscalationLimit, resolutionBufferBlocks) = MarketDeployer(msg.sender).deployParams();
-        token0 = address(new OutcomeToken());
-        token1 = address(new OutcomeToken());
+        (factory, creator, oracle, identifier, tokenC) = MarketDeployer(msg.sender).deployParams();
+        uint[6] memory details = MarketDeployer(msg.sender).getMarketConfigs();
+        oracleFeeNumerator = details[0];
+        oracleFeeDenominator = details[1];
+        expireBufferBlocks = details[2];
+        donBufferBlocks = details[3];
+        donEscalationLimit = details[4];
+        resolutionBufferBlocks = details[5];
     }
 
-    function getReservesTokenC() public view returns (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1){
+    function getReservesTokenC() public view override returns (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1){
         _reserveC = reserveC;
         _reserveDoN0 = reserveDoN0;
         _reserveDoN1 = reserveDoN1;
     }
 
-    function getReservesOTokens() public view returns (uint _reserve0, uint _reserve1){
+    function getReservesOTokens() public view override returns (uint _reserve0, uint _reserve1){
         _reserve0 = reserve0;
         _reserve1 = reserve1;
     }
 
-    function getAddressOfTokens() public view returns (address _tokenC, address _token0, address _token1){
+    function getAddressOfTokens() public view override returns (address _tokenC, address _token0, address _token1){
         _tokenC = tokenC;
         _token0 = token0;
         _token1 = token1;
     }
 
 
-    function getStake(address _of, uint _for) external view returns (uint) {
+    function getStake(address _of, uint _for) external view override returns (uint) {
         require(_for < 2);
         return stakes[_for][_of];
     }
 
+    function getStaking() external view override returns (uint _amount0, uint _amount1, address _staker0, address _staker1){
+        _amount0 = staking.amount0;
+        _amount1 = staking.amount1;
+        _staker0 = staking.staker0;
+        _staker1 = staking.staker1;
+    }
 
     function setOutcomeByExpiry() private {
         // set the outcome as the last staked outcome, if any & close the market
@@ -176,7 +184,7 @@ contract Market {
         }
     }
 
-    function fund() external isMarketCreated {
+    function fund() external override isMarketCreated {
         uint balance = IERC20(tokenC).balanceOf(address(this));
         (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1) = getReservesTokenC();
         uint amount = balance - (_reserveC + _reserveDoN0 + _reserveDoN1);
@@ -194,9 +202,11 @@ contract Market {
         resolutionEndsAtBlock = block.number + resolutionBufferBlocks; // pre-set resolution expiry, incase donEscalationLimit == 0
         
         require(amount > 0, 'AMOUNT 0');
+
+        emit MarketFunded(address(this), reserve0, reserve1, reserveC);
     }
     
-    function buy(uint amount0, uint amount1, address to) external isMarketFunded {
+    function buy(uint amount0, uint amount1, address to) external override isMarketFunded {
         address _token0 = token0;
         address _token1 = token1;
         (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1) = getReservesTokenC();
@@ -215,14 +225,16 @@ contract Market {
 
         uint _reserve0New = (_reserve0 + amount) - amount0;
         uint _reserve1New = (_reserve1 + amount) - amount1;
-        require(_reserve0.mul(_reserve1) <= _reserve0New.mul(_reserve1New), "ERR - INV");
+        require((_reserve0*_reserve1) <= (_reserve0New*_reserve1New), "ERR - INV");
 
         reserve0 = _reserve0New;
         reserve1 = _reserve1New;
         reserveC += amount;
+
+        // emit OutcomeBought(address(this), to, amount, amount0, amount1, _reserve0New, _reserve1New);
     }   
 
-    function sell(uint amount, address to) external isMarketFunded {
+    function sell(uint amount, address to) external override isMarketFunded {
         address _tokenC = tokenC;
         (uint _reserve0, uint _reserve1) = getReservesOTokens();
 
@@ -237,21 +249,18 @@ contract Market {
         OutcomeToken(token0).revoke(address(this), amount);
         OutcomeToken(token1).revoke(address(this), amount);
 
-        // // console.log("**********************************");
-        // console.log("%s %s %s", amount0, amount1, amount);
-        // console.log("%s %s %s", _reserve0, _reserve1, _reserve1*_reserve0);
-        // // console.log("**********************************");
-
         uint _reserve0New = (_reserve0 + amount0) - amount;
         uint _reserve1New = (_reserve1 + amount1) - amount;
-        require(_reserve0.mul(_reserve1) <= _reserve0New.mul(_reserve1New), "ERR - INV");
+        require((_reserve0*_reserve1) <= (_reserve0New*_reserve1New), "ERR - INV");
 
         reserve0 = _reserve0New;
         reserve1 = _reserve1New;
         reserveC -= amount;
+
+        emit OutcomeSold(address(this), to, amount0, amount1, amount, _reserve0New, _reserve1New);
     }
 
-    function redeemWinning(uint _for, address to) external isMarketClosed {
+    function redeemWinning(uint _for, address to) external override isMarketClosed {
         uint amount;
         if (_for == 0){
             uint balance = OutcomeToken(token0).balanceOf(address(this));
@@ -265,13 +274,15 @@ contract Market {
         if (_outcome == _for){
             IERC20(tokenC).transfer(to, amount);
         }else if (_outcome == 2){
-            IERC20(tokenC).transfer(to, amount.div(2));
+            IERC20(tokenC).transfer(to, (amount/2));
         }
 
         require(_for < 2);
+
+        emit WinningRedeemed(address(this), to, _for, amount, _outcome);
     }
 
-    function stakeOutcome(uint _for, address to) external isMarketBuffer {
+    function stakeOutcome(uint _for, address to) external override isMarketBuffer {
         require(_for < 2);
         
         (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1) = getReservesTokenC(); 
@@ -293,13 +304,11 @@ contract Market {
             _staking.amount1 = amount;
             _staking.staker1 = to;
         } 
-        // console.log("Stakes 0 - %s, 1 - %s", _staking.amount0, _staking.amount1);
+
         lastOutcomeStaked = _for;
         donEscalationCount += 1;
         donBufferEndsAtBlock = donBufferBlocks + block.number;
         staking = _staking;
-
-        // console.log("escalation count %s limit %s", donEscalationCount, donEscalationLimit);
         
         // update stage to MarketResolve, if don limit exceeded
         if (donEscalationLimit <= donEscalationCount){
@@ -308,12 +317,14 @@ contract Market {
             stage = Stages.MarketResolve;
         }
 
-        require(_lastAmountStaked1.mul(2) <= amount, "DBL STAKE");
-        require(_lastAmountStaked0.mul(2) <= amount, "DBL STAKE");
+        require((_lastAmountStaked1*2) <= amount, "DBL STAKE");
+        require((_lastAmountStaked0*2) <= amount, "DBL STAKE");
         require(amount != 0);
+
+        emit OutcomeStaked(address(this), to, _for, amount);
     }
 
-    function redeemStake(uint _for) external isMarketClosed {
+    function redeemStake(uint _for) external override isMarketClosed {
         uint _outcome = outcome;
         uint _reserveDoN0 = reserveDoN0;
         uint _reserveDoN1 = reserveDoN1;
@@ -347,9 +358,11 @@ contract Market {
 
         reserveDoN0 = _reserveDoN0;
         reserveDoN1 = _reserveDoN1;
+
+        emit StakeRedeemed(address(this), msg.sender, _for, amount);
     }
 
-    function setOutcome(uint _outcome) external isMarketResolve {
+    function setOutcome(uint _outcome) external override isMarketResolve {
         require(_outcome < 3);
         
         uint _oracleFeeNumerator = oracleFeeNumerator;
@@ -361,11 +374,11 @@ contract Market {
             uint _reserveDoN1 = reserveDoN1;
             uint _reserveDoN0 = reserveDoN0;
             if (_outcome == 0 && _reserveDoN1 != 0) {
-                fee = _reserveDoN1.mul(_oracleFeeNumerator).div(_oracleFeeDenominator);
+                fee = (_reserveDoN1*_oracleFeeNumerator)/_oracleFeeDenominator;
                 reserveDoN1 -= fee;
             }
             if (_outcome == 1 && _reserveDoN0 != 0) {
-                fee = _reserveDoN0.mul(_oracleFeeNumerator).div(_oracleFeeDenominator);
+                fee = (_reserveDoN0*_oracleFeeNumerator)/_oracleFeeDenominator;
                 reserveDoN0 -= fee;
             }
             IERC20(tokenC).transfer(_oracle, fee);
@@ -374,16 +387,7 @@ contract Market {
         outcome = _outcome;
         stage = Stages.MarketClosed;
         require(msg.sender == _oracle);
-    }
 
-    // function trimStake(address to) external isMarketClosed {
-    //     uint _outcome = outcome;
-    //     if (_outcome == 0 && lastAmountStaked0 == 0){
-    //         IERC20(tokenC).transfer(to, reserveDoN1);
-    //         reserveDoN1 = 0;
-    //     }else if (_outcome == 1 && lastAmountStaked1 == 0){
-    //         IERC20(tokenC).transfer(to, reserveDoN0);
-    //         reserveDoN0 = 0;
-    //     }
-    // }
+        emit OracleSetOutcome(address(this), _outcome);
+    }
 }

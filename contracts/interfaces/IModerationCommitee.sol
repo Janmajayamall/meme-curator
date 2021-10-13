@@ -4,13 +4,9 @@ pragma solidity ^0.8.0;
 
 interface IModerationCommitte {
     struct MarketParams {
-        uint feeNumerator;
-        uint feeDenominator;
+        bool isActive;
         address tokenC;
-        uint expireAfterBlocks;
-        uint resolutionBufferBlocks;
-        uint donBufferBlocks;
-        uint donEscalationLimit;
+        uint[6] details;
     }
 
     struct Fee {
@@ -23,5 +19,5 @@ interface IModerationCommitte {
     // function getDoNEscalationLimit() external view returns (uint);
     // function getResolutionBuffer() external view returns (uint);
     // function getDoNBuffer() external view returns (uint);
-    function getMarketParams() external view returns (bool, uint, uint, address, uint, uint, uint, uint);
+    function getMarketParams() external view returns (bool, address, uint[6] memory);
 }

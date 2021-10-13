@@ -2,8 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import './Market.sol';
-import './interfaces/IModerationCommitee.sol';
 import './libraries/TransferHelper.sol';
 import './MarketDeployer.sol';
 
@@ -11,6 +9,10 @@ contract MarketFactory {
     // creator => oracle => identifier
     mapping(address => mapping(address => mapping(bytes32 => address))) public markets;
     address public deployer;
+
+    // // events
+    // event MarketCreated(address indexed market, address indexed creator, address indexed oracle, bytes32 indexed identifier);
+    // event MarketDetails(address indexed market);
 
     constructor(){
         deployer = address(new MarketDeployer());
@@ -20,13 +22,11 @@ contract MarketFactory {
         require(markets[_creator][_oracle][_identifier] == address(0), 'Market Exists');
 
         // deploy
-        (bool _isActive,uint _oracleFeeNumerator,uint _oracleFeeDenominator, address _tokenC, uint _expireAfterBlocks, uint _resolutionBufferBlocks, uint _donBufferBlocks, uint _donEscalationLimit) = IModerationCommitte(_oracle).getMarketParams();
-        require(_isActive, "not active");
-        address marketAddress = MarketDeployer(deployer).deploy(_creator, _oracle, _identifier, _oracleFeeNumerator, _oracleFeeDenominator, _tokenC, _expireAfterBlocks, _resolutionBufferBlocks, _donBufferBlocks, _donEscalationLimit);
+        address marketAddress = MarketDeployer(deployer).deploy(_creator, _oracle, _identifier);
 
         // fund market
-        TransferHelper.safeTransferFrom(_tokenC, msg.sender, marketAddress, _fundingAmount);
-        Market(marketAddress).fund();
+        // TransferHelper.safeTransferFrom(_tokenC, msg.sender, marketAddress, _fundingAmount);
+        // Market(marketAddress).fund();
         
         markets[_creator][_oracle][_identifier] = marketAddress;
     }

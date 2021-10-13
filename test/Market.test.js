@@ -268,7 +268,7 @@ async function checkRedeemStake(thisRef, _for, user, expectedWinnings) {
 	const reserveDoN0 = await thisRef.market.reserveDoN0();
 	const reserveDoN1 = await thisRef.market.reserveDoN1();
 	const lastOutcomeStaked = await thisRef.market.lastOutcomeStaked();
-	const staking = await thisRef.market.staking();
+	const staking = await thisRef.market.getStaking();
 	const outcome = await thisRef.market.outcome();
 
 	// get stake amount

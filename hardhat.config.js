@@ -22,14 +22,14 @@ module.exports = {
 	contractSizer: {
 		alphaSort: true,
 		disambiguatePaths: false,
-		runOnCompile: false,
-		strict: false,
+		runOnCompile: true,
+		strict: true,
 	},
 	networks: {
 		hardhat: {
-			gas: 12000000,
-			blockGasLimit: 0x1fffffffffffff,
-			allowUnlimitedContractSize: true,
+			// gas: 12000000,
+			// blockGasLimit: 0x1fffffffffffff,
+			// allowUnlimitedContractSize: true,
 			timeout: 1800000,
 		},
 	},
