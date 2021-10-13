@@ -14,13 +14,16 @@ async function main() {
 	// await hre.run('compile');
 
 	// We get the contract to deploy
-	const market = await (
-		await hre.ethers.getContractFactory("Market")
+	const contractHelper = await (
+		await hre.ethers.getContractFactory("ContractHelper")
 	).deploy();
 
-	const cc = await market.buy("1000000000000000000", "1000000000000000000");
-	console.log(cc.toString());
-	// console.log((await market.getD()).toString());
+	console.log(
+		`Market.sol init bytecode hash ${await contractHelper.getMarketContractInitBytecodeHash()}`
+	);
+
+	const uniswapAddress = await contractHelper.getAddress();
+	console.log(`token address ${uniswapAddress}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

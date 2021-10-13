@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 library Math {
+    
     function isValidAmountCRoot(uint a0, uint a1, uint r0, uint r1, uint a, bool buy) internal pure returns (bool){
         if (buy == true){
             if((r0 + a) > a0 && (r1 + a) > a1){

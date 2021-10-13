@@ -2,24 +2,12 @@ const { waffle, ethers } = require("hardhat");
 const { BigNumber } = ethers;
 const { expect } = require("chai");
 const { recoverAddress } = require("@ethersproject/transactions");
-
-function addBN(x, y) {
-	return BigNumber.from(x).add(BigNumber.from(y));
-}
-
-function subBN(x, y) {
-	return BigNumber.from(x).sub(BigNumber.from(y));
-}
-
-function getBigNumber(amount, decimals = 18) {
-	return BigNumber.from(amount).mul(BigNumber.from(10).pow(decimals));
-}
-
-async function advanceBlocksBy(blocks) {
-	for (let i = 0; i < blocks; i++) {
-		await ethers.provider.send("evm_mine", []);
-	}
-}
+const {
+	addBN,
+	subBN,
+	getBigNumber,
+	advanceBlocksBy,
+} = require("./shared/utils");
 
 async function checkTokenBalances(thisRef, eTokenC, eToken0, eToken1, address) {
 	// check token balances of market
@@ -445,6 +433,7 @@ async function createNewMarket(thisRef, funding, identifier) {
 }
 
 describe("Market", function () {
+	return;
 	before(async function () {
 		this.Market = await ethers.getContractFactory("Market");
 		this.MarketFactory = await ethers.getContractFactory("MarketFactory");
@@ -504,8 +493,6 @@ describe("Market", function () {
 	});
 
 	describe("Market stage - Market Funded", async function () {
-		beforeEach(async function () {});
-
 		it("Should be funded", async function () {
 			// check market stage should be MarketFunded
 			expect(await this.market.stage()).to.eq(1);

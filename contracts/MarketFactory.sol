@@ -10,7 +10,7 @@ import './MarketDeployer.sol';
 contract MarketFactory {
     // creator => oracle => identifier
     mapping(address => mapping(address => mapping(bytes32 => address))) public markets;
-    address public immutable deployer;
+    address public deployer;
 
     constructor(){
         deployer = address(new MarketDeployer());

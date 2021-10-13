@@ -5,28 +5,31 @@ pragma solidity ^0.8.0;
 import './libraries/TransferHelper.sol';
 import './Market.sol';
 import './libraries/Math.sol';
+import './MarketFactory.sol';
+import 'hardhat/console.sol';
+
 
 contract MarketRouter {
     using SafeMath for uint;
 
-    address public immutable factory;
-    address public marketDeployer;
+    address public factory;
+    address public deployer;
 
-    bytes32 private constant MARKET_INIT_CODE_HASH = 0x21291291029121ac21029102100291029102901291092012910921090921099a; 
+    bytes32 constant internal MARKET_INIT_CODE_HASH = 0x192b03ee3761d4bcbfd9c811071350c58d37627c2b9f9fce1faa827f2573e24b;
 
     constructor(address _factory) {
         factory = _factory;
-        // get market deployer's address and store;
+        deployer = MarketFactory(factory).deployer();
     }
 
     /// @notice Contract address of a prediction market
     function getMarketAddress(address creator, address oracle, bytes32 identifier) public view returns (address marketAddress) {
-        marketAddress = address(bytes20(keccak256(abi.encodePacked(
-                '0xff',
-                marketDeployer,
+        marketAddress = address(uint160(uint256((keccak256(abi.encodePacked(
+                hex'ff',
+                deployer,
                 keccak256(abi.encode(creator, oracle, identifier)),
                 MARKET_INIT_CODE_HASH
-            ))));
+            ))))));
     }
 
     /// @notice Buy exact amountOfToken0 & amountOfToken1 with collteral tokens <= amountInCMax
