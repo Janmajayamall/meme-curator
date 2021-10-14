@@ -21,9 +21,6 @@ async function main() {
 	console.log(
 		`Market.sol init bytecode hash ${await contractHelper.getMarketContractInitBytecodeHash()}`
 	);
-
-	const uniswapAddress = await contractHelper.getAddress();
-	console.log(`token address ${uniswapAddress}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

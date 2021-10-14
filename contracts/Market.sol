@@ -138,6 +138,7 @@ contract Market is IMarket {
         donEscalationLimit = details[4];
         resolutionBufferBlocks = details[5];
         require(oracleFeeNumerator <= oracleFeeDenominator, "ORACLE INACTIVE");
+        emit MarketCreated(address(this), creator, oracle, identifier, tokenC);
     }
 
     function getReservesTokenC() public view override returns (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1){
@@ -215,7 +216,16 @@ contract Market is IMarket {
         
         require(amount > 0, 'AMOUNT 0');
 
-        emit MarketFunded(address(this), reserve0, reserve1, reserveC);
+        emit MarketFunded(
+            address(this), 
+            reserve0, 
+            reserve1, 
+            reserveC,
+            expireAtBlock,
+            donBufferEndsAtBlock,
+            donEscalationLimit,
+            resolutionEndsAtBlock
+        );
     }
     
     function buy(uint amount0, uint amount1, address to) external override isMarketFunded {
@@ -327,7 +337,7 @@ contract Market is IMarket {
             // change to market resolve & set block number for resolution expiry
             resolutionEndsAtBlock = block.number + resolutionBufferBlocks;
             stage = Stages.MarketResolve;
-            emit EscalationLimitReached(address(this));
+            emit EscalationLimitReached(address(this), resolutionEndsAtBlock);
         }
 
         require((_lastAmountStaked1*2) <= amount, "DBL STAKE");

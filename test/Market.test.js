@@ -265,9 +265,9 @@ async function checkRedeemStake(thisRef, _for, user, expectedWinnings) {
 	// `);
 
 	// get reserves
-	const reserveDoN0 = await thisRef.market.reserveDoN0();
-	const reserveDoN1 = await thisRef.market.reserveDoN1();
-	const lastOutcomeStaked = await thisRef.market.lastOutcomeStaked();
+	const reservesTokenC = await thisRef.market.getReservesTokenC();
+	const reserveDoN0 = reservesTokenC[1];
+	const reserveDoN1 = reservesTokenC[2];
 	const staking = await thisRef.market.getStaking();
 	const outcome = await thisRef.market.outcome();
 
@@ -571,9 +571,7 @@ describe("Market", function () {
 			await setOutcome(this, 0);
 
 			// redeem winning throws error
-			await expect(
-				redeemWining(this, 1, getBigNumber(5))
-			).to.be.revertedWith("FALSE MC");
+			await expect(redeemWining(this, 1)).to.be.revertedWith("FALSE MC");
 
 			// stake outcome throws error
 			await expect(
