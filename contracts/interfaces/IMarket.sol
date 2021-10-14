@@ -3,8 +3,7 @@
 pragma solidity ^0.8.0;
 
 interface IMarket {
-
-    function getReservesTokenC() external view returns (uint, uint, uint);
+    
     function getReservesOTokens() external view returns (uint, uint);
     function getAddressOfTokens() external view returns (address, address, address);
     function getStake(address _of, uint _for) external view returns (uint);

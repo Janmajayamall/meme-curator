@@ -107,14 +107,15 @@ contract Market is IMarket {
         Stages _stage = stage;
 
         uint _donEscalationLimit = donEscalationLimit;
+        uint _resolutionEndsAtBlock = resolutionEndsAtBlock;
 
         // when donBuffer && escalationLimit == 0, preference is given to donBuffer, that means market closes after expiration & does not waits for resolution
         // when escalationLimit == 0 & donBuffer != 0 then donBuffer is ignored and market transitions to resolve stage right after expiration
         // when donBuffer == 0 & escalationLimit != 0 then market closes right after expiration
         if (_stage != Stages.MarketClosed && _stage != Stages.MarketCreated){
             if ((_stage != Stages.MarketResolve && block.number >= donBufferEndsAtBlock && (donBufferBlocks == 0 || _donEscalationLimit != 0))
-                || (block.number >= resolutionEndsAtBlock && _stage == Stages.MarketResolve)
-                || (block.number >= resolutionEndsAtBlock && _donEscalationLimit == 0) 
+                || (block.number >= _resolutionEndsAtBlock && _stage == Stages.MarketResolve)
+                || (block.number >= _resolutionEndsAtBlock && _donEscalationLimit == 0) 
             ){
                 setOutcomeByExpiry();
                 _stage = Stages.MarketClosed;
@@ -141,10 +142,8 @@ contract Market is IMarket {
         emit MarketCreated(address(this), creator, oracle, identifier, tokenC);
     }
 
-    function getReservesTokenC() public view override returns (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1){
-        _reserveC = reserveC;
-        _reserveDoN0 = reserveDoN0;
-        _reserveDoN1 = reserveDoN1;
+    function getReservesTokenC() internal view returns (uint reserves){
+        reserves = reserveC+reserveDoN0+reserveDoN1;
     }
 
     function getReservesOTokens() public view override returns (uint _reserve0, uint _reserve1){
@@ -157,7 +156,6 @@ contract Market is IMarket {
         _token0 = token0;
         _token1 = token1;
     }
-
 
     function getStake(address _of, uint _for) external view override returns (uint) {
         require(_for < 2);
@@ -198,9 +196,7 @@ contract Market is IMarket {
     }
 
     function fund() external override isMarketCreated {
-        uint balance = IERC20(tokenC).balanceOf(address(this));
-        (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1) = getReservesTokenC();
-        uint amount = balance - (_reserveC + _reserveDoN0 + _reserveDoN1);
+        uint amount = IERC20(tokenC).balanceOf(address(this)); // tokenC reserve is 0 at this point
         
         OutcomeToken(token0).issue(address(this), amount);
         OutcomeToken(token1).issue(address(this), amount);   
@@ -231,11 +227,11 @@ contract Market is IMarket {
     function buy(uint amount0, uint amount1, address to) external override isMarketFunded {
         address _token0 = token0;
         address _token1 = token1;
-        (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1) = getReservesTokenC();
         (uint _reserve0, uint _reserve1) = getReservesOTokens();
 
+        uint reserveTokenC = getReservesTokenC();
         uint balance = IERC20(tokenC).balanceOf(address(this));
-        uint amount = balance - (_reserveC + _reserveDoN0 + _reserveDoN1);
+        uint amount = balance - reserveTokenC;
 
         // buying all tokens
         OutcomeToken(_token0).issue(address(this), amount);
@@ -253,7 +249,7 @@ contract Market is IMarket {
         reserve1 = _reserve1New;
         reserveC += amount;
 
-        // emit OutcomeBought(address(this), to, amount, amount0, amount1, _reserve0New, _reserve1New);
+        emit OutcomeBought(address(this), to, amount, amount0, amount1, _reserve0New, _reserve1New);
     }   
 
     function sell(uint amount, address to) external override isMarketFunded {
@@ -307,13 +303,13 @@ contract Market is IMarket {
     function stakeOutcome(uint _for, address to) external override isMarketBuffer {
         require(_for < 2);
         
-        (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1) = getReservesTokenC(); 
         Staking memory _staking = staking;
         uint _lastAmountStaked0 = _staking.amount0;
         uint _lastAmountStaked1 = _staking.amount1;
 
+        uint reserveTokenC = getReservesTokenC(); 
         uint balance = IERC20(tokenC).balanceOf(address(this));
-        uint amount = balance - (_reserveDoN0 + _reserveDoN1 + _reserveC);
+        uint amount = balance - reserveTokenC;
 
         stakes[_for][to] += amount;
         if (_for == 0) {
