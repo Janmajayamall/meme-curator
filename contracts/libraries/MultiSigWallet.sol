@@ -2,9 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import 'hardhat/console.sol';
-
-
 /// @title Multisignature wallet - Allows multiple parties to agree on transactions before execution.
 /// @author Stefan George - <stefan.george@consensys.net>
 /// Few changes are made for updating code to ^0.8.0 & fullfil necessary requirements

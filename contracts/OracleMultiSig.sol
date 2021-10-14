@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import './libraries/MultiSigWallet.sol';
 import './interfaces/IModerationCommitee.sol';
-import 'hardhat/console.sol';
 
 contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
 

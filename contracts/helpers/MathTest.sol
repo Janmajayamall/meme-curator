@@ -3,7 +3,6 @@
 pragma solidity ^0.8.0;
 
 import './../libraries/Math.sol';
-import 'hardhat/console.sol';
 
 contract MathTest {
 
@@ -18,21 +17,9 @@ contract MathTest {
         reserve1 += amount;
     }
 
-    /* 
-    Log functions
-     */
-    function logReserves() internal view {
-        console.log("Reserves before r0 - %s, r1 -  %s & rP - %s ", reserve0, reserve1, reserve0*reserve1);
-    }
-
-    function logAmounts(uint a0, uint a1, uint a) internal view {
-    console.log("Amounts a0 - %s, a1 -  %s, a - %s", a0, a1, a);
-    }
 
     function buy(uint a0, uint a1, uint a) external {
-        console.log("\n Buy starts **************************");
-        logAmounts(a0, a1, a);
-        logReserves();
+
         require(
             (reserve0 * reserve1) <= (reserve0 + a - a0) * (reserve1 + a - a1), 
             "INVALID INPUTS"
@@ -41,24 +28,15 @@ contract MathTest {
         reserve1 = reserve1 + a - a1;
         balance0 += a0;
         balance1 += a1;
-        logReserves();
-        console.log("Buy ends ************************** \n");
     }
 
     function sell(uint a0, uint a1, uint a) external {
-        console.log("\n Sell starts **************************");
-        logAmounts(a0, a1, a);
-        logReserves();
         require(
             (reserve0 * reserve1) <= (reserve0 + a0 - a) * (reserve1 + a1 - a),
             "INVALID INPUTS"
         );
         reserve0 = reserve0 + a0 - a;
         reserve1 = reserve1 + a1 - a;
-        // balance0 -= a0;
-        // balance1 -= a1;
-        logReserves();
-        console.log("\n Sell ends **************************");
     }
 
     function getReserves() external view returns (uint, uint){
@@ -79,17 +57,12 @@ contract MathTest {
         return amount;
     }
 
-    function getAmountCBySellTokens(uint a0, uint a1, uint r0, uint r1) external view returns (uint){
+    function getAmountCBySellTokens(uint a0, uint a1, uint r0, uint r1) external pure returns (uint){
         uint amount = Math.getAmountCBySellTokens(a0, a1, r0, r1);
-        // console.log("**************************");
-        // console.log("%s %s", a0, a1);
-        // console.log("%s %s", r0, r1);
-        // console.log("%s", amount);
-        // console.log("**************************");
         return amount;
     }
 
-    function getTokenAmountToSellForAmountC(uint fixedTokenAmount, uint fixedTokenIndex, uint r0, uint r1, uint a) external view returns (uint){
+    function getTokenAmountToSellForAmountC(uint fixedTokenAmount, uint fixedTokenIndex, uint r0, uint r1, uint a) external pure returns (uint){
         uint amount = Math.getTokenAmountToSellForAmountC(fixedTokenAmount, fixedTokenIndex, r0, r1, a);
         return amount;
     }
