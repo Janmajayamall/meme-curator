@@ -128,7 +128,8 @@ contract Market is IMarket {
 
     constructor(){
         bool isOracleActive;
-        (factory, creator, oracle, identifier, tokenC, isOracleActive) = MarketDeployer(msg.sender).deployParams();
+        (isOracleActive, factory, creator, oracle, identifier, tokenC) = MarketDeployer(msg.sender).deployParams();
+        require(isOracleActive == true, "ORACLE INACTIVE");
         uint[6] memory details = MarketDeployer(msg.sender).getMarketConfigs();
         oracleFeeNumerator = details[0];
         oracleFeeDenominator = details[1];
@@ -136,6 +137,7 @@ contract Market is IMarket {
         donBufferBlocks = details[3];
         donEscalationLimit = details[4];
         resolutionBufferBlocks = details[5];
+        require(oracleFeeNumerator <= oracleFeeDenominator, "ORACLE INACTIVE");
     }
 
     function getReservesTokenC() public view override returns (uint _reserveC, uint _reserveDoN0, uint _reserveDoN1){
