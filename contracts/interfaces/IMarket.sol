@@ -19,11 +19,12 @@ interface IMarket {
     function redeemStake(uint _for) external;
     function setOutcome(uint _outcome) external;
 
-    event MarketFunded(address market, uint reserve0, uint reserve1, uint reserveC);
-    event OutcomeBought(address market, address by, uint amountCIn, uint amount0Out, uint amount1Out, uint reserve0, uint reserve1);
-    event OutcomeSold(address market, address by, uint amount0In, uint amount1In, uint amountCOut, uint reserve0, uint reserve1);
-    event WinningRedeemed(address mmarket, address by, uint _for, uint amountTIn, uint outcome);
-    event OutcomeStaked(address market, address by, uint _for, uint amountCIn);
-    event StakeRedeemed(address market, address by, uint _for, uint amountCOut);
-    event OracleSetOutcome(address market, uint outcome);
+    event MarketFunded(address indexed market, uint reserve0, uint reserve1, uint reserveC);
+    event OutcomeBought(address indexed market, address indexed by, uint amountCIn, uint amount0Out, uint amount1Out, uint reserve0, uint reserve1);
+    event OutcomeSold(address indexed market, address indexed by, uint amount0In, uint amount1In, uint amountCOut, uint reserve0, uint reserve1);
+    event WinningRedeemed(address indexed market, address indexed by, uint _for, uint amountTIn, uint outcome);
+    event OutcomeStaked(address indexed market, address indexed by, uint _for, uint amountCIn);
+    event StakeRedeemed(address indexed market, address indexed by, uint _for, uint amountCOut);
+    event OracleSetOutcome(address indexed market, uint outcome);
+    event EscalationLimitReached(address indexed market);
 }

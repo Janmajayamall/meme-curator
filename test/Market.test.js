@@ -237,11 +237,11 @@ async function checkRedeemWinning(
 	// 	).balanceOf(thisRef.trader1.address);
 	// }
 
-	console.log(`
-		*********REDEEM WINNING**************	
-		Before: 
-		TokenC Balance - ${tokenCBalance} For - ${_for}
-	`);
+	// console.log(`
+	// 	*********REDEEM WINNING**************
+	// 	Before:
+	// 	TokenC Balance - ${tokenCBalance} For - ${_for}
+	// `);
 
 	await redeemWining(thisRef, _for, user);
 
@@ -249,20 +249,20 @@ async function checkRedeemWinning(
 	// after redeeming
 	expect(tokenCBalanceAfter).to.eq(addBN(tokenCBalance, expectedWinning));
 
-	console.log(`
-		After: 
-		TokenC Balance - ${tokenCBalanceAfter}
-		*********REDEEM WINNING ENDS**************	
-	`);
+	// console.log(`
+	// 	After:
+	// 	TokenC Balance - ${tokenCBalanceAfter}
+	// 	*********REDEEM WINNING ENDS**************
+	// `);
 }
 
 async function checkRedeemStake(thisRef, _for, user, expectedWinnings) {
 	const balance = await thisRef.memeToken.balanceOf(user.address);
-	console.log(`
-		*********REDEEM STAKE**************	
-		Before: 
-		TokenC Balance - ${balance} For - ${_for}
-	`);
+	// console.log(`
+	// 	*********REDEEM STAKE**************
+	// 	Before:
+	// 	TokenC Balance - ${balance} For - ${_for}
+	// `);
 
 	// get reserves
 	const reserveDoN0 = await thisRef.market.reserveDoN0();
@@ -276,16 +276,16 @@ async function checkRedeemStake(thisRef, _for, user, expectedWinnings) {
 	// check if _for == outcome
 	//
 
-	console.log(`
-		reserveDoN0 - ${reserveDoN0}
-		reserveDoN1 - ${reserveDoN1}
-		lastOutcomeStaked - ${lastOutcomeStaked}
-		lastAmountStaked0 - ${staking[0]}
-		lastAmountStaked1 - ${staking[1]}
-		outcome - ${outcome}
-		stakeAmount - ${stakeAmount}
-		expected winning - ${expectedWinnings}
- 	`);
+	// console.log(`
+	// 	reserveDoN0 - ${reserveDoN0}
+	// 	reserveDoN1 - ${reserveDoN1}
+	// 	lastOutcomeStaked - ${lastOutcomeStaked}
+	// 	lastAmountStaked0 - ${staking[0]}
+	// 	lastAmountStaked1 - ${staking[1]}
+	// 	outcome - ${outcome}
+	// 	stakeAmount - ${stakeAmount}
+	// 	expected winning - ${expectedWinnings}
+	// `);
 
 	// var finalBalance = 0;
 
@@ -309,12 +309,12 @@ async function checkRedeemStake(thisRef, _for, user, expectedWinnings) {
 	// check whether stake redeem is correct or not
 	const afterBalance = await thisRef.memeToken.balanceOf(user.address);
 
-	console.log(`
-		After: 
-		TokenC Balance - ${afterBalance} For - ${_for}
-		Expected Balance - ${addBN(balance, expectedWinnings)}
-		*********REDEEM STAKE END**************	
-	`);
+	// console.log(`
+	// 	After:
+	// 	TokenC Balance - ${afterBalance} For - ${_for}
+	// 	Expected Balance - ${addBN(balance, expectedWinnings)}
+	// 	*********REDEEM STAKE END**************
+	// `);
 
 	expect(afterBalance).to.eq(addBN(balance, expectedWinnings));
 }
@@ -417,7 +417,6 @@ async function createNewMarket(thisRef, funding, identifier) {
 }
 
 describe("Market", function () {
-	return;
 	before(async function () {
 		this.Market = await ethers.getContractFactory("Market");
 		this.MarketFactory = await ethers.getContractFactory("MarketFactory");
@@ -1074,7 +1073,7 @@ describe("Market", function () {
 				this,
 				this.trader1.address
 			);
-			console.log(tokenBalances);
+			// console.log(tokenBalances);
 			await checkRedeemWinning(
 				this,
 				1,

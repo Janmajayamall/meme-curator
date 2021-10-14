@@ -90,10 +90,12 @@ contract Market is IMarket {
     modifier isMarketResolve(){
         Stages _stage = stage;
 
-        // if market expired and don escalation limit is zero, then market directly goes to MarketResolve (skipping MarketBuffer)
-        // Note if donEscalationLimit == 0 && donBufferBlocks == 0 then market closes after expiry, thus no Market Resolve
-        if (block.number >= expireAtBlock && donEscalationLimit == 0 && donBufferBlocks != 0){
-            _stage = Stages.MarketResolve;
+        if(_stage != Stages.MarketResolve && _stage != Stages.MarketCreated){
+            // if market expired and don escalation limit is zero, then market directly goes to MarketResolve (skipping MarketBuffer)
+            // Note if donEscalationLimit == 0 && donBufferBlocks == 0 then market closes after expiry, thus no Market Resolve
+            if (block.number >= expireAtBlock && donEscalationLimit == 0 && donBufferBlocks != 0){
+                _stage = Stages.MarketResolve;
+            }
         }
 
         // stage should be MarketResolve & resolution time shouldn't have expired
@@ -109,7 +111,7 @@ contract Market is IMarket {
         // when donBuffer && escalationLimit == 0, preference is given to donBuffer, that means market closes after expiration & does not waits for resolution
         // when escalationLimit == 0 & donBuffer != 0 then donBuffer is ignored and market transitions to resolve stage right after expiration
         // when donBuffer == 0 & escalationLimit != 0 then market closes right after expiration
-        if (_stage != Stages.MarketClosed){
+        if (_stage != Stages.MarketClosed && _stage != Stages.MarketCreated){
             if ((_stage != Stages.MarketResolve && block.number >= donBufferEndsAtBlock && (donBufferBlocks == 0 || _donEscalationLimit != 0))
                 || (block.number >= resolutionEndsAtBlock && _stage == Stages.MarketResolve)
                 || (block.number >= resolutionEndsAtBlock && _donEscalationLimit == 0) 
@@ -125,7 +127,8 @@ contract Market is IMarket {
     }
 
     constructor(){
-        (factory, creator, oracle, identifier, tokenC) = MarketDeployer(msg.sender).deployParams();
+        bool isOracleActive;
+        (factory, creator, oracle, identifier, tokenC, isOracleActive) = MarketDeployer(msg.sender).deployParams();
         uint[6] memory details = MarketDeployer(msg.sender).getMarketConfigs();
         oracleFeeNumerator = details[0];
         oracleFeeDenominator = details[1];
@@ -186,6 +189,7 @@ contract Market is IMarket {
 
     function setOutcomeTokens(address _token0, address _token1) external override {
         require(stage == Stages.MarketCreated && token0 == address(0));
+        require(_token0 != address(0) && _token1 != address(0));
         token0 = _token0;
         token1 = _token1;
     }
@@ -321,6 +325,7 @@ contract Market is IMarket {
             // change to market resolve & set block number for resolution expiry
             resolutionEndsAtBlock = block.number + resolutionBufferBlocks;
             stage = Stages.MarketResolve;
+            emit EscalationLimitReached(address(this));
         }
 
         require((_lastAmountStaked1*2) <= amount, "DBL STAKE");

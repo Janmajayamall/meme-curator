@@ -8,12 +8,13 @@ import './OutcomeToken.sol';
 
 
 contract MarketDeployer{
-      struct DeployParams {
+    struct DeployParams {
         address factory;
         address creator;
         address oracle;
         bytes32 identifier;
         address tokenC;
+        bool isOracleActive;
     }
 
     DeployParams public deployParams;
@@ -24,17 +25,15 @@ contract MarketDeployer{
         factory = msg.sender;
     }
 
-    function deploy(address _creator, address _oracle, bytes32 _identifier) public returns(address market, address tokenC){
+    function deploy(address _creator, address _oracle, bytes32 _identifier) external returns(address market, address tokenC){
+        require(factory == msg.sender);
         (bool _isActive, address _tokenC, uint[6] memory _details) = IModerationCommitte(_oracle).getMarketParams();
-        require(_isActive, "ORACLE INACTIVE");
-        deployParams = DeployParams({factory: msg.sender, creator: _creator, oracle: _oracle, identifier: _identifier, tokenC: _tokenC});
+        deployParams = DeployParams({factory: msg.sender, creator: _creator, oracle: _oracle, identifier: _identifier, tokenC: _tokenC, isOracleActive: _isActive});
         marketConfigs = _details;
         market = address(new Market{salt: keccak256(abi.encode(_creator, _oracle, _identifier))}());
         tokenC = _tokenC;
         delete deployParams;
         delete marketConfigs;
-        require(factory == msg.sender);
-        
     }
 
     function getMarketConfigs() external view returns (uint[6] memory){
