@@ -116,7 +116,7 @@ contract MarketTest is DSTest {
     // function testFailed_tradePostMarketExpiry(){}
 }
 
-contract MarketBufferPostExpiration is MarketTest {
+contract MarketBufferPostMarketExpiry is MarketTest {
 
     address _marketAddress;
 
@@ -183,7 +183,7 @@ contract MarketBufferPostExpiration is MarketTest {
     function test_stakeOutcomeTillEscalationLimit() public {
         assertEq(uint(Market(_marketAddress).stage()), uint(1));
 
-        // 5 valid stakes
+        // 3 valid stakes
         MemeToken(memeToken).transfer(_marketAddress, 2*10**18); 
         Market(_marketAddress).stakeOutcome(0, address(this));
         assertEq(uint(Market(_marketAddress).stage()), uint(2));
@@ -194,4 +194,173 @@ contract MarketBufferPostExpiration is MarketTest {
 
         assertEq(uint(Market(_marketAddress).stage()), uint(3)); // market stage is now MarketResolution
     }
+
+    function testFailed_stakeOutcomePostBufferExpiryWithNoPriorStakes() public {
+        // expire buffer period
+        (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+10));
+
+        MemeToken(memeToken).transfer(_marketAddress, 2*10**18); 
+        Market(_marketAddress).stakeOutcome(0, address(this)); 
+    }
+
+    function testFailed_stakeOutcomePostBufferExpiryWithFewStakes() public {
+        MemeToken(memeToken).transfer(_marketAddress, 2*10**18); 
+        Market(_marketAddress).stakeOutcome(0, address(this));
+        assertEq(uint(Market(_marketAddress).stage()), uint(2));
+        MemeToken(memeToken).transfer(_marketAddress, 4*10**18);
+
+        // expire buffer period
+        (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+10));
+
+        MemeToken(memeToken).transfer(_marketAddress, 2*10**18); 
+        Market(_marketAddress).stakeOutcome(0, address(this)); 
+    }
+
+}
+
+contract MarketResolvePostEscalationLimit is MarketTest {
+    
+    address _marketAddress;
+
+    function setUp() override public {
+        marketFactory = address(new MarketFactory());
+        marketRouter = address(new MarketRouter(marketFactory));
+
+        memeToken = address(new MemeToken());
+        MemeToken(memeToken).mint(address(this), type(uint).max);
+
+        address[] memory oracleOwners = new address[](1);
+        oracleOwners[0] = address(this);
+        oracle = address(new OracleMultiSig(oracleOwners, 1, 10));
+        OracleMultiSig(oracle).addTxSetupOracle(true, 10, 100, memeToken, 10, 3, 10, 10);
+
+        // create market
+        uint _fundingAmount = 1*10**18;
+        bytes32 _identifier = 0x0401030400040101040403020201030003000000010202020104010201000103;
+        MemeToken(memeToken).approve(marketFactory, _fundingAmount);
+        MarketFactory(marketFactory).createMarket(address(this), oracle, _identifier, _fundingAmount);
+        _marketAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, _identifier);
+
+        // expire market
+        (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+10));
+
+        // stake till escalation limit exceeds
+        MemeToken(memeToken).transfer(_marketAddress, 2*10**18); 
+        Market(_marketAddress).stakeOutcome(0, address(this));
+        assertEq(uint(Market(_marketAddress).stage()), uint(2));
+        MemeToken(memeToken).transfer(_marketAddress, 4*10**18); 
+        Market(_marketAddress).stakeOutcome(1, address(this));
+        MemeToken(memeToken).transfer(_marketAddress, 8*10**18); 
+        Market(_marketAddress).stakeOutcome(0, address(this));  // escalation limit reached
+    }
+
+    function test_setOutcome(uint outcome) public {
+        if (outcome > 2) return;
+    
+        assertEq(Market(_marketAddress).outcome(), 2); // outcome hasn't been set
+        assertEq(uint(Market(_marketAddress).stage()), 3); // stage is resolve
+
+        uint oracleBalanceBefore = MemeToken(memeToken).balanceOf(oracle);
+        OracleMultiSig(oracle).addTxSetMarketOutcome(outcome, _marketAddress);
+        uint oracleBalanceAfter = MemeToken(memeToken).balanceOf(oracle);
+        uint losingStakeFee;
+        if (outcome == 0){
+            losingStakeFee = ((4*10**18)*10)/100;
+        }else if (outcome == 1){
+            losingStakeFee = ((10*10**18)*10)/100;
+        }
+        assertEq(oracleBalanceAfter, oracleBalanceBefore+losingStakeFee); // fees earned
+
+        assertEq(Market(_marketAddress).outcome(), outcome);
+        assertEq(uint(Market(_marketAddress).stage()), 4); // market closed
+    }
+
+    function testFail_setInvalidOutcome() public {
+        OracleMultiSig(oracle).addTxSetMarketOutcome(3, _marketAddress);
+    }
+
+    function testFail_setOutcomePostResolutionPeriodExpires() public {
+        (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+10));
+        OracleMultiSig(oracle).addTxSetMarketOutcome(0, _marketAddress);
+        assertEq(Market(_marketAddress).outcome(), 0);   
+    }
+}
+
+
+contract MarketResolvePostBufferExpiry is MarketTest {
+
+    address _marketAddress;
+
+    function setUp() override public {
+        marketFactory = address(new MarketFactory());
+        marketRouter = address(new MarketRouter(marketFactory));
+
+        memeToken = address(new MemeToken());
+        MemeToken(memeToken).mint(address(this), type(uint).max);
+
+        address[] memory oracleOwners = new address[](1);
+        oracleOwners[0] = address(this);
+        oracle = address(new OracleMultiSig(oracleOwners, 1, 10));
+        OracleMultiSig(oracle).addTxSetupOracle(true, 10, 100, memeToken, 10, 3, 10, 10);
+
+        // create market
+        uint _fundingAmount = 1*10**18;
+        bytes32 _identifier = 0x0401030400040101040403020201030003000000010202020104010201000103;
+        MemeToken(memeToken).approve(marketFactory, _fundingAmount);
+        MarketFactory(marketFactory).createMarket(address(this), oracle, _identifier, _fundingAmount);
+        _marketAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, _identifier);
+
+        // few trades
+        uint a0 = 10*10**18;
+        uint a1 = 0;
+        uint a = Math.getAmountCToBuyTokens(a0, a1, _fundingAmount, _fundingAmount);
+        MemeToken(memeToken).transfer(_marketAddress, a);
+        Market(_marketAddress).buy(a0, a1, address(this));
+        a0 = 0;
+        a1 = 4*10**18;
+        a = Math.getAmountCToBuyTokens(a0, a1, _fundingAmount, _fundingAmount);
+        MemeToken(memeToken).transfer(_marketAddress, a);
+        Market(_marketAddress).buy(a0, a1, address(this));
+
+        // expire market
+        (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+10));
+    }
+
+    function test_marketResolvedToLastStake() public {
+        // few staking rounds
+        MemeToken(memeToken).transfer(_marketAddress, 2*10**18); 
+        Market(_marketAddress).stakeOutcome(0, address(this));
+        assertEq(uint(Market(_marketAddress).stage()), uint(2));
+        MemeToken(memeToken).transfer(_marketAddress, 4*10**18); 
+        Market(_marketAddress).stakeOutcome(1, address(this));
+
+        // expire buffer period
+        (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+10));
+
+        assertEq(uint(Market(_marketAddress).stage()), 2);
+
+        // close & resolve the market
+        Market(_marketAddress).redeemStake(1);
+        assertEq(uint(Market(_marketAddress).stage()), 4); 
+
+        // outcome is 1 - last staked outcome
+        assertEq(Market(_marketAddress).outcome(), 1);
+    }
+
+    function test_marketResolvedToFavoredOutcome() public {
+        // expire buffer period
+        (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+10));
+
+        assertEq(Market(_marketAddress).outcome(), 2); // outcome hasn't changed
+        
+        // redeem winning to close the market
+        (, address token0, ) = Market(_marketAddress).getAddressOfTokens();
+        OutcomeToken(token0).transfer(_marketAddress, 10*10**18);
+        Market(_marketAddress).redeemWinning(0, address(this));
+
+        // market resolved to outcome 0, since it was the favored outcome
+        assertEq(uint(Market(_marketAddress).stage()), 4); 
+        assertEq(Market(_marketAddress).outcome(), 0); 
+    }
+
 }
