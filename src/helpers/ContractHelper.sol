@@ -1,3 +1,5 @@
+pragma solidity ^0.8.0;
+
 import './../Market.sol';
 
 contract ContractHelper {
