@@ -23,7 +23,7 @@ contract MarketTest is MarketTestsShared {
         marketAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, _identifier);        
     }
 
-    function test_marketCreationWithMarketFactory(bytes32 _identifier, uint112 _fundingAmount) public {
+    function test_marketCreationWithMarketFactory(bytes32 _identifier, uint120 _fundingAmount) public {
       if (_fundingAmount  == 0) return;
         createMarket(_identifier, _fundingAmount);
 
@@ -41,14 +41,13 @@ contract MarketTest is MarketTestsShared {
         assertEq(OutcomeToken(token1).balanceOf(_marktAddress), _fundingAmount);
     }
 
-    function test_marketBuyPostFunding(bytes32 _identifier, uint112 _fundingAmount, uint112 _a0, uint112 _a1) public {
+    function test_marketBuyPostFunding(bytes32 _identifier, uint120 _fundingAmount, uint120 _a0, uint120 _a1) public {
         if (_fundingAmount == 0) return;
         createMarket(_identifier, _fundingAmount);
         // buy amount
         uint a0 = uint(_a0);
         uint a1 = uint(_a1);
         uint a = Math.getAmountCToBuyTokens(a0, a1, _fundingAmount, _fundingAmount);
-        emit log_named_uint("Amount a ", a);
         MemeToken(memeToken).transfer(marketAddress, a);
         (, address token0, address token1) = Market(marketAddress).getAddressOfTokens();
         uint token0BalanceBefore = OutcomeToken(token0).balanceOf(address(this));
@@ -58,7 +57,7 @@ contract MarketTest is MarketTestsShared {
         assertEq(OutcomeToken(token1).balanceOf(address(this)), token1BalanceBefore+a1);
     }
 
-    function test_marketSellPostFunding(bytes32 _identifier, uint112 _fundingAmount, uint112 _a0, uint112 _a1) public {
+    function test_marketSellPostFunding(bytes32 _identifier, uint120 _fundingAmount, uint120 _a0, uint120 _a1) public {
         if (_fundingAmount == 0) return;
         createMarket(_identifier, _fundingAmount);
         address marketAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, _identifier);

@@ -60,8 +60,9 @@ library Math {
         }
 
         y += 1;
-        require(x >= y, "INVALID INPUTS");
+        require(x > y, "INVALID INPUTS");
         tokenAmount = x - y;
+        tokenAmount -= 1;
     }
 
 
@@ -72,7 +73,7 @@ library Math {
         rootVal = sqrt(rootVal);
         a = (nveB + rootVal)/2;
         if (!isValidAmountCRoot(a0, a1, r0, r1, a, false)){
-            require(nveB >= rootVal, 'ERR');
+            require(nveB > rootVal, 'ERR');
             a = (nveB - rootVal)/2;
         }
         a -= 1;
@@ -85,15 +86,16 @@ library Math {
         if(fixedTokenIndex == 0){
             x = r1;
             require(r0 + fixedTokenAmount >= a, "INVALID");
-            y = ((r0 * r1)/(r0 + fixedTokenAmount - a)) + 1 + a;
+            y = ((r0 * r1)/(r0 + fixedTokenAmount - a)) + a;
         }else{
             x = r0;
             require(r1 + fixedTokenAmount >= a, "INVALID");
-            y = ((r0 * r1)/(r1 + fixedTokenAmount - a)) + 1 + a;
+            y = ((r0 * r1)/(r1 + fixedTokenAmount - a)) + a;
         }
 
         require(y >= x, "INVALID INPUTS");
         tokenAmount = y - x;
+        tokenAmount += 1;
     }
 
 
