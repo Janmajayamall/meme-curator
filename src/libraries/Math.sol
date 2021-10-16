@@ -6,12 +6,12 @@ library Math {
     
     function isValidAmountCRoot(uint a0, uint a1, uint r0, uint r1, uint a, bool buy) internal pure returns (bool){
         if (buy == true){
-            if((r0 + a) > a0 && (r1 + a) > a1){
+            if((r0 + a) >= a0 && (r1 + a) >= a1){
                 return true;
             }
             return false;
         }else{
-            if((r0 + a0) > a && (r1 + a1) > a){
+            if((r0 + a0) >= a && (r1 + a1) >= a){
                 return true;
             }
             return false;
