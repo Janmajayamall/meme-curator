@@ -83,7 +83,7 @@ contract Market is IMarket {
         }
 
         // only when stage is MarketBuffer && escalation limit hasn't been reached && buffer period hasn't expired
-        require (_stage == Stages.MarketBuffer && donEscalationLimit > donEscalationCount && block.number < donBufferEndsAtBlock, "FALSE STATE");
+        require (_stage == Stages.MarketBuffer && donEscalationLimit > donEscalationCount && block.number < donBufferEndsAtBlock, "FALSE MB");
         _;
     }
 
@@ -208,7 +208,7 @@ contract Market is IMarket {
         uint _expireBufferBlocks = expireBufferBlocks;
         expireAtBlock = block.number + _expireBufferBlocks; 
         donBufferEndsAtBlock = block.number + _expireBufferBlocks + donBufferBlocks; // pre-set buffer period expiry
-        resolutionEndsAtBlock = block.number + resolutionBufferBlocks; // pre-set resolution expiry, incase donEscalationLimit == 0
+        resolutionEndsAtBlock = block.number + _expireBufferBlocks + resolutionBufferBlocks; // pre-set resolution expiry, incase donEscalationLimit == 0
         
         require(amount > 0, 'AMOUNT 0');
 
@@ -338,7 +338,7 @@ contract Market is IMarket {
 
         require((_lastAmountStaked1*2) <= amount, "DBL STAKE");
         require((_lastAmountStaked0*2) <= amount, "DBL STAKE");
-        require(amount != 0);
+        require(amount != 0, "INVALID STAKE");
 
         emit OutcomeStaked(address(this), to, _for, amount);
     }

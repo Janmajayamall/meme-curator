@@ -12,10 +12,6 @@ contract MarketFactory {
     mapping(address => mapping(address => mapping(bytes32 => address))) public markets;
     address public deployer;
 
-    // // events
-    // event MarketCreated(address indexed market, address indexed creator, address indexed oracle, bytes32 indexed identifier);
-    // event MarketDetails(address indexed market);
-
     constructor(){
         deployer = address(new MarketDeployer());
     }
@@ -26,10 +22,11 @@ contract MarketFactory {
         // deploy
         (address marketAddress, address tokenC) = MarketDeployer(deployer).deploy(_creator, _oracle, _identifier);
 
-        // fund
+        // set market tokens
         address token0 = address(new OutcomeToken(marketAddress));
         address token1 = address(new OutcomeToken(marketAddress));
         IMarket(marketAddress).setOutcomeTokens(token0, token1);
+        // fund the market
         TransferHelper.safeTransferFrom(tokenC, msg.sender, marketAddress, _fundingAmount);
         Market(marketAddress).fund();
         

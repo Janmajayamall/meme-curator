@@ -94,4 +94,12 @@ contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
         bytes memory data = abi.encodeWithSignature("setOutcome(uint256)", to);
         submitTransaction(market, 0, data);
     }
+
+    function addTxChangeDonEscalationLimit(uint _donEscalationLimit) external ownerExists(msg.sender) {
+        bytes memory data = abi.encodeWithSignature(
+            "changeDonEscalationLimit(uint256)", 
+            _donEscalationLimit
+            );
+        submitTransaction(address(this), 0, data);
+    }
 }

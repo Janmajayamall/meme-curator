@@ -71,6 +71,12 @@ contract MarketTestsShared is DSTest {
         marketAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, _identifier);        
     }
 
+    function createMarket(bytes32 _identifier, uint _fundingAmount) internal {
+        MemeToken(memeToken).approve(marketFactory, _fundingAmount);
+        MarketFactory(marketFactory).createMarket(address(this), oracle, _identifier, _fundingAmount);
+        marketAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, _identifier);        
+    }
+
     function getMarketContractInitBytecodeHash() internal returns (bytes32 initHash){
         bytes memory initCode = type(Market).creationCode;
         initHash = keccak256(initCode);
@@ -117,6 +123,7 @@ contract MarketTestsShared is DSTest {
         uint a = Math.getAmountCToBuyTokens(a0, a1, sharedFundingAmount, sharedFundingAmount);
         MemeToken(memeToken).transfer(marketAddress, a);
         Market(marketAddress).buy(a0, a1, address(this));
+        emit log_named_address("marketAddress", marketAddress);
         a0 = 0;
         a1 = 4*10**18;
         a = Math.getAmountCToBuyTokens(a0, a1, sharedFundingAmount+a-10*10**18, sharedFundingAmount+a);
@@ -169,13 +176,36 @@ contract MarketTestsShared is DSTest {
         }
     }
 
+    function oneOffBuy(uint amount0, uint amount1) internal {
+        (uint r0, uint r1) = Market(marketAddress).getReservesOTokens();
+        uint amount = Math.getAmountCToBuyTokens(amount0, amount1, r0, r1);
+        MemeToken(memeToken).transfer(marketAddress, amount);
+        Market(marketAddress).buy(amount0, amount1, address(this));
+    }
+
+    function oneOffSell(uint amount0, uint amount1) internal{
+        (uint r0, uint r1) = Market(marketAddress).getReservesOTokens();
+        uint amount = Math.getAmountCBySellTokens(amount0, amount1, r0, r1);
+        (, address token0, address token1) = Market(marketAddress).getAddressOfTokens();
+        OutcomeToken(token0).transfer(marketAddress, amount0);
+        OutcomeToken(token1).transfer(marketAddress, amount1);
+        Market(marketAddress).sell(amount, address(this));
+    }
+
     function expireMarket() virtual internal {
-        (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+10));
+        (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+sharedOracleConfig.expireAfterBlocks));
+        // require(success);
     }
 
     function expireBufferPeriod() virtual internal {
         // expire market
-        (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+10));
+        (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+sharedOracleConfig.donBufferBlocks));
+        // require(success);
+    }
+
+    function expireResolutionPeriod() virtual internal {
+        // expire resolution period
+        (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+sharedOracleConfig.resolutionBufferBlocks));
     }
 
     function setUp() virtual public {

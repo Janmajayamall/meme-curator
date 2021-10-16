@@ -12,7 +12,7 @@ contract MarketRouter {
     address public factory;
     address public deployer;
 
-    bytes32 constant internal MARKET_INIT_CODE_HASH = 0xffe094af0c4cbb43ebbca0a108f87f968680e9ba67032d4901169056dda4af81;
+    bytes32 constant internal MARKET_INIT_CODE_HASH = 0x09710a3882e47aef2829ab96eba100f383659b4a5043c3bbe3606e649624d0c8;
 
     constructor(address _factory) {
         factory = _factory;
