@@ -102,7 +102,7 @@ contract MarketResolve is MarketTestsShared {
     }
 
     function testFail_setInvalidOutcome(uint outcome) public {
-        if (outcome < 3) return;
+        if (outcome < 3) require(false);
         checkStateMarketResolvePostEscalation();
         OracleMultiSig(oracle).addTxSetMarketOutcome(outcome, marketAddress);
     }

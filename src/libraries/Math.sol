@@ -85,11 +85,11 @@ library Math {
         uint y;
         if(fixedTokenIndex == 0){
             x = r1;
-            require(r0 + fixedTokenAmount >= a, "INVALID");
+            require(r0 + fixedTokenAmount > a, "INVALID");
             y = ((r0 * r1)/(r0 + fixedTokenAmount - a)) + a;
         }else{
             x = r0;
-            require(r1 + fixedTokenAmount >= a, "INVALID");
+            require(r1 + fixedTokenAmount > a, "INVALID");
             y = ((r0 * r1)/(r1 + fixedTokenAmount - a)) + a;
         }
 
