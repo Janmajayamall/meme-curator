@@ -68,7 +68,7 @@ contract Market is IMarket {
 
     modifier isMarketFunded(){
         // market is only funded till block number < expireAtBlock
-        require (stage == Stages.MarketFunded && block.number < expireAtBlock, "FALSE STATE");
+        require (stage == Stages.MarketFunded && block.number < expireAtBlock, "FALSE MF");
         _;
     }
 
