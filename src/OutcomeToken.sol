@@ -4,13 +4,14 @@ pragma solidity ^0.8.0;
 
 import './interfaces/IERC20.sol';
 import './libraries/ERC20.sol';
+import './MarketFactory.sol';
 
 
 contract OutcomeToken is ERC20 {
     address public immutable market;
 
-    constructor (address owner) ERC20("OutcomeToken", "OT") {
-        market = owner;
+    constructor () ERC20("OutcomeToken", "OT") {
+        market = MarketFactory(msg.sender).marketAddress();
     }
 
     function issue(address to, uint256 amount) public {
