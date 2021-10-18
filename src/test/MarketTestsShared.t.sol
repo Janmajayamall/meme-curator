@@ -202,6 +202,16 @@ contract MarketTestsShared is DSTest {
         Market(marketAddress).sell(amount, address(this));
     }
 
+    function keepReservesAndBalsInCheck() internal {
+        (uint reserve0, uint reserve1) = Market(marketAddress).getReservesOTokens();
+        uint reserveC = Market(marketAddress).getReservesTokenC();
+
+        (address tokenC, address token0, address token1) = Market(marketAddress).getAddressOfTokens();
+        assertEq(reserveC, MemeToken(tokenC).balanceOf(marketAddress));
+        assertEq(reserve0, OutcomeToken(token0).balanceOf(marketAddress));
+        assertEq(reserve1, OutcomeToken(token1).balanceOf(marketAddress));
+    } 
+
     function expireMarket() virtual internal {
         (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+sharedOracleConfig.expireAfterBlocks));
         // require(success);

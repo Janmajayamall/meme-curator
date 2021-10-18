@@ -13,15 +13,14 @@ contract Market is IMarket {
     uint256 reserve1;
     uint256 reserveC;
 
-    address token0;
-    address token1;
-    address tokenC;
+    address public token0;
+    address public token1;
+    address public tokenC;
 
-    address factory;
-    bytes32 identifier;
+    bytes32 immutable identifier;
     uint expireAtBlock;
     uint expireBufferBlocks;
-    address creator;
+    address immutable creator;
 
     uint public outcome = 2;
     Stages public stage;
@@ -30,26 +29,21 @@ contract Market is IMarket {
     uint256 reserveDoN0;
     uint256 reserveDoN1;
     uint lastOutcomeStaked = 2;
-    Staking public override staking;
+    Staking public staking;
     uint donEscalationCount;
     uint donEscalationLimit;
     uint donBufferEndsAtBlock;
     uint donBufferBlocks; 
     // (0) or (1) outcome index -> staker's address => amount
-    mapping(address => uint256)[2] stakes;
+    mapping(address => uint256)[2] public stakes;
 
     // final resolution related
-    address oracle;
+    address immutable oracle;
     uint resolutionBufferBlocks;
     uint resolutionEndsAtBlock;
     uint oracleFeeNumerator;
     uint oracleFeeDenominator;
 
-
-    modifier isMarketCreated() {
-        require (stage == Stages.MarketCreated);
-        _;
-    }
 
     modifier isMarketFunded(){
         // market is only funded till block number < expireAtBlock
@@ -134,20 +128,20 @@ contract Market is IMarket {
         emit MarketCreated(address(this), _creator, _oracle, _identifier, _tokenC);
     }
 
-    function getReservesTokenC() internal view returns (uint reserves){
+    function getReservesTokenC() public view returns (uint reserves){
         reserves = reserveC+reserveDoN0+reserveDoN1;
     }
 
-    function getReservesOTokens() public view override returns (uint _reserve0, uint _reserve1){
-        _reserve0 = reserve0;
-        _reserve1 = reserve1;
-    }
+    // function getReservesOTokens() public view override returns (uint _reserve0, uint _reserve1){
+    //     _reserve0 = reserve0;
+    //     _reserve1 = reserve1;
+    // }
 
-    function getAddressOfTokens() public view override returns (address _tokenC, address _token0, address _token1){
-        _tokenC = tokenC;
-        _token0 = token0;
-        _token1 = token1;
-    }
+    // function getAddressOfTokens() public view override returns (address _tokenC, address _token0, address _token1){
+    //     _tokenC = tokenC;
+    //     _token0 = token0;
+    //     _token1 = token1;
+    // }
 
     function setOutcomeByExpiry() private {
         // set the outcome as the last staked outcome, if any & close the market
@@ -168,7 +162,8 @@ contract Market is IMarket {
         }
     }
 
-    function fund() external override isMarketCreated {
+    function fund() external override {
+        require (stage == Stages.MarketCreated);
         uint amount = IERC20(tokenC).balanceOf(address(this)); // tokenC reserve is 0 at this point
         
         OutcomeToken(token0).issue(address(this), amount);
@@ -200,7 +195,8 @@ contract Market is IMarket {
     function buy(uint amount0, uint amount1, address to) external override isMarketFunded {
         address _token0 = token0;
         address _token1 = token1;
-        (uint _reserve0, uint _reserve1) = getReservesOTokens();
+        uint _reserve0 = reserve0;
+        uint _reserve1 = reserve1;
 
         uint reserveTokenC = getReservesTokenC();
         uint balance = IERC20(tokenC).balanceOf(address(this));
@@ -227,7 +223,8 @@ contract Market is IMarket {
 
     function sell(uint amount, address to) external override isMarketFunded {
         address _tokenC = tokenC;
-        (uint _reserve0, uint _reserve1) = getReservesOTokens();
+        uint _reserve0 = reserve0;
+        uint _reserve1 = reserve1;
 
         IERC20(_tokenC).transfer(to, amount);
 
@@ -251,7 +248,7 @@ contract Market is IMarket {
         emit OutcomeSold(address(this), to, amount0, amount1, amount, _reserve0New, _reserve1New);
     }
 
-    function redeemWinning(uint _for, address to) external override isMarketClosed {
+    function redeemWinning(uint _for, address to) external override isMarketClosed{
         uint amount;
         if (_for == 0){
             address _token0 = token0;
@@ -390,7 +387,8 @@ contract Market is IMarket {
         emit OracleSetOutcome(address(this), _outcome);
     }
 
-    function claimReserve() external isMarketClosed {
+    function claimReserve() external {
+        require(stage == Stages.MarketClosed);
         address _creator = creator;
         require(msg.sender == _creator);
         uint _reserve0 = reserve0;
@@ -401,4 +399,3 @@ contract Market is IMarket {
         reserve1 = 0;
     }
 }
-

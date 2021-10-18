@@ -62,6 +62,7 @@ contract MarketFundedTest is MarketTestsShared {
         Market(marketAddress).buy(a0, a1, address(this));
         assertEq(OutcomeToken(token0).balanceOf(address(this)), token0BalanceBefore+a0);
         assertEq(OutcomeToken(token1).balanceOf(address(this)), token1BalanceBefore+a1);
+        keepReservesAndBalsInCheck();
     }
 
     function test_marketSellPostFunding(bytes32 _identifier, uint120 _fundingAmount, uint120 _a0, uint120 _a1) public {
@@ -74,6 +75,7 @@ contract MarketFundedTest is MarketTestsShared {
         uint a = Math.getAmountCToBuyTokens(a0, a1, _fundingAmount, _fundingAmount);
         MemeToken(memeToken).transfer(marketAddress, a);
         Market(marketAddress).buy(a0, a1, address(this));
+        keepReservesAndBalsInCheck();
 
         // sell tokens
         uint sa = Math.getAmountCBySellTokens(a0, a1, _fundingAmount + a - a0, _fundingAmount + a - a1);
@@ -84,6 +86,7 @@ contract MarketFundedTest is MarketTestsShared {
         Market(marketAddress).sell(sa, address(this));
         uint memeBalanceAfter = MemeToken(memeToken).balanceOf(address(this));
         assertEq(memeBalanceBefore + sa, memeBalanceAfter);
+        keepReservesAndBalsInCheck();
     }
 
     function testFail_fund() public {
