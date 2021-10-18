@@ -4,24 +4,10 @@ pragma solidity ^0.8.0;
 
 import './OutcomeToken.sol';
 import './MarketFactory.sol';
-import './MarketDeployer.sol';
 import './interfaces/IMarket.sol';
+import './interfaces/IModerationCommitee.sol';
 
 contract Market is IMarket {
-    enum Stages {
-        MarketCreated,
-        MarketFunded,
-        MarketBuffer,
-        MarketResolve,
-        MarketClosed
-    }
-
-    struct Staking {
-        uint amount0;
-        uint amount1;
-        address staker0;
-        address staker1;
-    }
 
     uint256 reserve0;
     uint256 reserve1;
@@ -29,14 +15,13 @@ contract Market is IMarket {
 
     address token0;
     address token1;
-    address public tokenC;
+    address tokenC;
 
     address factory;
     bytes32 identifier;
     uint expireAtBlock;
     uint expireBufferBlocks;
     address creator;
-
 
     uint public outcome = 2;
     Stages public stage;
@@ -45,7 +30,7 @@ contract Market is IMarket {
     uint256 reserveDoN0;
     uint256 reserveDoN1;
     uint lastOutcomeStaked = 2;
-    Staking staking;
+    Staking public override staking;
     uint donEscalationCount;
     uint donEscalationLimit;
     uint donBufferEndsAtBlock;
@@ -62,7 +47,7 @@ contract Market is IMarket {
 
 
     modifier isMarketCreated() {
-        require (stage == Stages.MarketCreated && token0 != address(0));
+        require (stage == Stages.MarketCreated);
         _;
     }
 
@@ -128,18 +113,25 @@ contract Market is IMarket {
     }
 
     constructor(){
-        bool isOracleActive;
-        (isOracleActive, factory, creator, oracle, identifier, tokenC) = MarketDeployer(msg.sender).deployParams();
-        require(isOracleActive == true, "ORACLE INACTIVE");
-        uint[6] memory details = MarketDeployer(msg.sender).getMarketConfigs();
+        (address _creator, address _oracle, bytes32 _identifier) = MarketFactory(msg.sender).deployParams();
+        (bool _isActive, address _tokenC, uint[6] memory details) = IModerationCommitte(_oracle).getMarketParams();
+        require(_isActive == true, "ORACLE INACTIVE");
+        require(details[0] <= details[1], "INVALID FEE");
+
         oracleFeeNumerator = details[0];
         oracleFeeDenominator = details[1];
         expireBufferBlocks = details[2];
         donBufferBlocks = details[3];
         donEscalationLimit = details[4];
         resolutionBufferBlocks = details[5];
-        require(oracleFeeNumerator <= oracleFeeDenominator, "ORACLE INACTIVE");
-        emit MarketCreated(address(this), creator, oracle, identifier, tokenC);
+        creator = _creator;
+        oracle = _oracle;
+        identifier = _identifier;
+        tokenC = _tokenC;
+        token0 = address(new OutcomeToken()); // significant gas cost
+        token1 = address(new OutcomeToken());
+
+        emit MarketCreated(address(this), _creator, _oracle, _identifier, _tokenC);
     }
 
     function getReservesTokenC() internal view returns (uint reserves){
@@ -155,18 +147,6 @@ contract Market is IMarket {
         _tokenC = tokenC;
         _token0 = token0;
         _token1 = token1;
-    }
-
-    function getStake(address _of, uint _for) external view override returns (uint) {
-        require(_for < 2);
-        return stakes[_for][_of];
-    }
-
-    function getStaking() external view override returns (uint _amount0, uint _amount1, address _staker0, address _staker1){
-        _amount0 = staking.amount0;
-        _amount1 = staking.amount1;
-        _staker0 = staking.staker0;
-        _staker1 = staking.staker1;
     }
 
     function setOutcomeByExpiry() private {
@@ -186,13 +166,6 @@ contract Market is IMarket {
                 outcome = 2;
             }
         }
-    }
-
-    function setOutcomeTokens(address _token0, address _token1) external override {
-        require(stage == Stages.MarketCreated && token0 == address(0));
-        require(_token0 != address(0) && _token1 != address(0));
-        token0 = _token0;
-        token1 = _token1;
     }
 
     function fund() external override isMarketCreated {
@@ -281,19 +254,26 @@ contract Market is IMarket {
     function redeemWinning(uint _for, address to) external override isMarketClosed {
         uint amount;
         if (_for == 0){
-            uint balance = OutcomeToken(token0).balanceOf(address(this));
+            address _token0 = token0;
+            uint balance = OutcomeToken(_token0).balanceOf(address(this));
             amount = balance - reserve0;
+            OutcomeToken(_token0).revoke(address(this), amount);
         }else if (_for == 1){
-            uint balance = OutcomeToken(token1).balanceOf(address(this));
+            address _token1 = token1;
+            uint balance = OutcomeToken(_token1).balanceOf(address(this));
             amount = balance - reserve1;
+            OutcomeToken(_token1).revoke(address(this), amount);
         }
 
         uint _outcome = outcome;
-        if (_outcome == _for){
-            IERC20(tokenC).transfer(to, amount);
-        }else if (_outcome == 2){
-            IERC20(tokenC).transfer(to, (amount/2));
+        if (_outcome == 2){
+            amount = amount/2;                
+        }else if (_outcome != _for){
+            amount = 0;
         }
+        IERC20(tokenC).transfer(to, amount);
+
+        reserveC -= amount;
 
         require(_for < 2);
 
@@ -354,7 +334,7 @@ contract Market is IMarket {
             stakes[_for][msg.sender] = 0;
             if (_for == 0) _reserveDoN0 -= amount;
             if (_for == 1) _reserveDoN1 -= amount;
-        }else if (_outcome < 2) {
+        }else {
             Staking memory _staking = staking;
             amount = stakes[_outcome][msg.sender];
             stakes[_outcome][msg.sender] = 0;
@@ -409,4 +389,16 @@ contract Market is IMarket {
 
         emit OracleSetOutcome(address(this), _outcome);
     }
+
+    function claimReserve() external isMarketClosed {
+        address _creator = creator;
+        require(msg.sender == _creator);
+        uint _reserve0 = reserve0;
+        uint _reserve1 = reserve1;
+        TransferHelper.safeTransfer(token0, _creator, _reserve0);
+        TransferHelper.safeTransfer(token1, _creator, _reserve1);
+        reserve0 = 0;
+        reserve1 = 0;
+    }
 }
+

@@ -9,6 +9,7 @@ import './../MarketFactory.sol';
 import './../MarketRouter.sol';
 import './../libraries/Math.sol';
 import './../OutcomeToken.sol';
+import './../Market.sol';
 
 contract MarketTestsShared is DSTest {
 
@@ -65,21 +66,30 @@ contract MarketTestsShared is DSTest {
     }
 
     function createDefaultMarket() internal {
-        MemeToken(memeToken).approve(marketFactory, sharedFundingAmount);
+        MemeToken(memeToken).approve(marketRouter, sharedFundingAmount);
         bytes32 _identifier = 0x0401030400040101040403020201030003000000010202020104010201000103;
-        MarketFactory(marketFactory).createMarket(address(this), oracle, _identifier, sharedFundingAmount);
-        marketAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, _identifier);        
+        MarketRouter(marketRouter).createMarket(address(this), oracle, _identifier, sharedFundingAmount);
+        marketAddress = getExpectedMarketAddress(_identifier);
     }
 
     function createMarket(bytes32 _identifier, uint _fundingAmount) internal {
-        MemeToken(memeToken).approve(marketFactory, _fundingAmount);
-        MarketFactory(marketFactory).createMarket(address(this), oracle, _identifier, _fundingAmount);
-        marketAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, _identifier);        
+        MemeToken(memeToken).approve(marketRouter, _fundingAmount);
+        MarketRouter(marketRouter).createMarket(address(this), oracle, _identifier, _fundingAmount);
+        marketAddress = getExpectedMarketAddress(_identifier);
     }
 
     function getMarketContractInitBytecodeHash() internal returns (bytes32 initHash){
         bytes memory initCode = type(Market).creationCode;
         initHash = keccak256(initCode);
+    }
+
+    function getExpectedMarketAddress(bytes32 identifier) internal returns (address market) {
+        market = address(uint160(uint256(keccak256(abi.encodePacked(
+                hex'ff',
+                marketFactory,
+                keccak256(abi.encode(address(this), oracle, identifier)),
+                getMarketContractInitBytecodeHash()
+        )))));
     }
 
     function redeemStake(uint _for, uint outcome, uint stakeAmount, uint expectedWinning) internal {
@@ -210,5 +220,16 @@ contract MarketTestsShared is DSTest {
 
     function setUp() virtual public {
         commonSetup();
+    }
+
+    function test_dawda() public {
+        // bytes memory initCode = type(Market).creationCode;
+        // initHash = keccak256(initCode);
+        emit log_named_bytes32("INIT HASHCODE", getMarketContractInitBytecodeHash());
+        // require(false);
+        MemeToken(memeToken).approve(marketRouter, 10*10**18);
+        MarketRouter(marketRouter).createMarket(address(this), oracle, 0x0401030400040101040403020201030003000000010202020104010201000103, 10*10**18);
+        // MarketRouter(marketRouter).createMarket(address(this), oracle, 0x0401030400040101040403020201030003000000010202020104010201000103);
+        // // require(false);
     }
 }

@@ -11,7 +11,7 @@ contract OutcomeToken is ERC20 {
     address public immutable market;
 
     constructor () ERC20("OutcomeToken", "OT") {
-        market = MarketFactory(msg.sender).marketAddress();
+        market = msg.sender;
     }
 
     function issue(address to, uint256 amount) public {

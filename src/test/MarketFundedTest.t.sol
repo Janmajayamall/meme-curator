@@ -17,23 +17,35 @@ contract MarketFundedTest is MarketTestsShared {
         commonSetup();
     }
 
-
     function test_marketCreationWithMarketFactory(bytes32 _identifier, uint120 _fundingAmount) public {
         if (_fundingAmount  == 0) return;
-        createMarket(_identifier, _fundingAmount);
+        MarketFactory(marketFactory).createMarket(address(this), oracle, _identifier);
+        address expectedAddress = getExpectedMarketAddress(_identifier);
+
+        uint size;
+        assembly {
+            size := extcodesize(expectedAddress)
+        }
+        assertGt(size, 0);
+    }
+
+
+    function test_marketCreationWithMarketRouter(bytes32 _identifier, uint120 _fundingAmount) public {
+        if (_fundingAmount  == 0) return;
+        MemeToken(memeToken).approve(marketRouter, _fundingAmount);
+        MarketRouter(marketRouter).createMarket(address(this), oracle, _identifier, _fundingAmount);
 
         // check market exists
-        address _marktAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, _identifier);
-        assertEq(_marktAddress, MarketFactory(marketFactory).markets(address(this), oracle, _identifier));
+        address expectedAddress = getExpectedMarketAddress(_identifier);
 
         // check market has been funded & tokenC balance == _fundingAmount
-        assertEq(uint(Market(_marktAddress).stage()), uint(1));
-        assertEq(MemeToken(memeToken).balanceOf(_marktAddress), _fundingAmount);
+        assertEq(uint(Market(expectedAddress).stage()), uint(1));
+        assertEq(MemeToken(memeToken).balanceOf(expectedAddress), _fundingAmount);
 
         // check outcome token balances == _fundingAmount
-        (, address token0, address token1) = Market(_marktAddress).getAddressOfTokens();
-        assertEq(OutcomeToken(token0).balanceOf(_marktAddress), _fundingAmount);
-        assertEq(OutcomeToken(token1).balanceOf(_marktAddress), _fundingAmount);
+        (, address token0, address token1) = Market(expectedAddress).getAddressOfTokens();
+        assertEq(OutcomeToken(token0).balanceOf(expectedAddress), _fundingAmount);
+        assertEq(OutcomeToken(token1).balanceOf(expectedAddress), _fundingAmount);
     }
 
     function test_marketBuyPostFunding(bytes32 _identifier, uint120 _fundingAmount, uint120 _a0, uint120 _a1) public {
@@ -55,7 +67,7 @@ contract MarketFundedTest is MarketTestsShared {
     function test_marketSellPostFunding(bytes32 _identifier, uint120 _fundingAmount, uint120 _a0, uint120 _a1) public {
         if (_fundingAmount == 0) return;
         createMarket(_identifier, _fundingAmount);
-        address marketAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, _identifier);
+
         // buy amount
         uint a0 = _a0;
         uint a1 = _a1;
@@ -65,7 +77,6 @@ contract MarketFundedTest is MarketTestsShared {
 
         // sell tokens
         uint sa = Math.getAmountCBySellTokens(a0, a1, _fundingAmount + a - a0, _fundingAmount + a - a1);
-        emit log_named_uint("Amount received ", sa);
         (, address token0, address token1) = Market(marketAddress).getAddressOfTokens();
         OutcomeToken(token0).transfer(marketAddress, a0);
         OutcomeToken(token1).transfer(marketAddress, a1);
@@ -84,30 +95,25 @@ contract MarketFundedTest is MarketTestsShared {
         Market(marketAddress).fund();
     }
 
-    function testFail_setOutcomeTokens() public {
-        createDefaultMarket();
-        (, address _token0, address _token1) = Market(marketAddress).getAddressOfTokens();
-        Market(marketAddress).setOutcomeTokens(_token0, _token1);
-    }
-
-    function testFailed_stakeOutcome() public {
+    function testFail_stakeOutcome() public {
         createDefaultMarket();
         simTradesInFavorOfOutcome0();
         simStakingRoundsBeforeEscalationLimit(sharedOracleConfig.donEscalationLimit);
     }
 
-    function testFailed_redeemWinning() public {
+    function testFail_redeemWinning() public {
         createDefaultMarket();
         simTradesInFavorOfOutcome0();
         redeemWinning(0, 10*10**18, 0);
     }
-    function testFailed_redeemStake() public {
+
+    function testFail_redeemStake() public {
         createDefaultMarket();
         simTradesInFavorOfOutcome0();
         redeemStake(0, 0, 10*10**18, 0);
     }
 
-    function testFailed_setOutcome() public {
+    function testFail_setOutcome() public {
         createDefaultMarket();
         simTradesInFavorOfOutcome0();
 
@@ -115,7 +121,7 @@ contract MarketFundedTest is MarketTestsShared {
         assertEq(Market(marketAddress).outcome(), 0);
     }
 
-    function testFailed_tradePostMarketExpiry() public {
+    function testFail_tradePostMarketExpiry() public {
         createDefaultMarket();
         simTradesInFavorOfOutcome0();
 

@@ -3,13 +3,29 @@
 pragma solidity ^0.8.0;
 
 interface IMarket {
-    
+
+    enum Stages {
+        MarketCreated,
+        MarketFunded,
+        MarketBuffer,
+        MarketResolve,
+        MarketClosed
+    }
+
+    struct Staking {
+        uint amount0;
+        uint amount1;
+        address staker0;
+        address staker1;
+    }
+
     function getReservesOTokens() external view returns (uint, uint);
     function getAddressOfTokens() external view returns (address, address, address);
-    function getStake(address _of, uint _for) external view returns (uint);
-    function getStaking() external view returns (uint, uint, address, address);
+    function staking() external view returns (uint, uint, address, address);
+    // function getStake(address _of, uint _for) external view returns (uint);
+    // function getStaking() external view returns (uint, uint, address, address);
 
-    function setOutcomeTokens(address _token0, address _token1) external;
+    // function setOutcomeTokens(address _token0, address _token1) external;
     function fund() external;
     function buy(uint amount0, uint amount1, address to) external;   
     function sell(uint amount, address to) external;

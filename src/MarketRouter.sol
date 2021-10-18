@@ -10,23 +10,38 @@ import './MarketFactory.sol';
 
 contract MarketRouter {
     address public factory;
-    address public deployer;
 
-    bytes32 constant internal MARKET_INIT_CODE_HASH = 0xe35faf68b0f71ad4b778722b5f66438eae5ce7b80f0e46ea09c3c7522f899fdd;
+    bytes32 constant internal MARKET_INIT_CODE_HASH = 0xdba9fb6cbc5871feb537711f62e499ca6d3161dd38eb0a2e7697301d8349bbce;
 
     constructor(address _factory) {
         factory = _factory;
-        deployer = MarketFactory(factory).deployer();
     }
 
     /// @notice Contract address of a prediction market
     function getMarketAddress(address creator, address oracle, bytes32 identifier) public view returns (address marketAddress) {
-        marketAddress = address(uint160(uint256((keccak256(abi.encodePacked(
+        marketAddress = address(uint160(uint256(keccak256(abi.encodePacked(
                 hex'ff',
-                deployer,
+                factory,
                 keccak256(abi.encode(creator, oracle, identifier)),
                 MARKET_INIT_CODE_HASH
-            ))))));
+            )))));
+    }
+
+    /// @notice Creates a new market
+    function createMarket(address _creator, address _oracle, bytes32 _identifier, uint amount) external {
+        address expectedAddress = getMarketAddress(_creator, _oracle, _identifier);
+        uint size;
+        assembly {
+            size := extcodesize(expectedAddress)
+        }
+        require(size == 0, "Market exists");
+        MarketFactory(factory).createMarket(_creator, _oracle, _identifier);
+
+        (address tokenC, , ) = Market(expectedAddress).getAddressOfTokens();
+
+        // fund
+        TransferHelper.safeTransferFrom(tokenC, msg.sender, expectedAddress, amount);
+        IMarket(expectedAddress).fund();
     }
 
     /// @notice Buy exact amountOfToken0 & amountOfToken1 with collteral tokens <= amountInCMax
@@ -104,9 +119,9 @@ contract MarketRouter {
     /// @notice Stake amountIn for outcome _for 
     function stakeForOutcome(uint _for, uint amountIn, address creator, address oracle, bytes32 identifier) external {
         require(_for < 2);
-        address market =  getMarketAddress(creator, oracle, identifier);
+        address market = getMarketAddress(creator, oracle, identifier);
         (address tokenC, , ) = IMarket(market).getAddressOfTokens();
-        (uint amount0,  uint amount1, ,) = IMarket(market).getStaking();
+        (uint amount0,  uint amount1, ,) = IMarket(market).staking();
         require(amount0*2 <= amountIn);
         require(amount1*2 <= amountIn);
         TransferHelper.safeTransferFrom(tokenC, msg.sender, market, amountIn);
