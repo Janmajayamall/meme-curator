@@ -10,6 +10,7 @@ import './../MarketRouter.sol';
 import './../libraries/Math.sol';
 import './../OutcomeToken.sol';
 import './../Market.sol';
+import './../libraries/ERC20.sol';
 
 contract MarketTestsShared is DSTest {
 
@@ -107,7 +108,8 @@ contract MarketTestsShared is DSTest {
     }
 
     function redeemWinning(uint _for, uint tokenAmount, uint _outcome) internal {
-        (, address token0, address token1) = Market(marketAddress).getAddressOfTokens();
+        address token0 = Market(marketAddress).token0();
+        address token1 = Market(marketAddress).token1();
         if (_for == 0){
             OutcomeToken(token0).transfer(marketAddress, tokenAmount);
         }else if (_for == 1){
@@ -187,26 +189,32 @@ contract MarketTestsShared is DSTest {
     }
 
     function oneOffBuy(uint amount0, uint amount1) internal {
-        (uint r0, uint r1) = Market(marketAddress).getReservesOTokens();
+        uint r0 = Market(marketAddress).reserve0();
+        uint r1 = Market(marketAddress).reserve1();
         uint amount = Math.getAmountCToBuyTokens(amount0, amount1, r0, r1);
         MemeToken(memeToken).transfer(marketAddress, amount);
         Market(marketAddress).buy(amount0, amount1, address(this));
     }
 
     function oneOffSell(uint amount0, uint amount1) internal{
-        (uint r0, uint r1) = Market(marketAddress).getReservesOTokens();
+        uint r0 = Market(marketAddress).reserve0();
+        uint r1 = Market(marketAddress).reserve1();
         uint amount = Math.getAmountCBySellTokens(amount0, amount1, r0, r1);
-        (, address token0, address token1) = Market(marketAddress).getAddressOfTokens();
+        address token0 = Market(marketAddress).token0();
+        address token1 = Market(marketAddress).token1();
         OutcomeToken(token0).transfer(marketAddress, amount0);
         OutcomeToken(token1).transfer(marketAddress, amount1);
         Market(marketAddress).sell(amount, address(this));
     }
 
     function keepReservesAndBalsInCheck() internal {
-        (uint reserve0, uint reserve1) = Market(marketAddress).getReservesOTokens();
+        uint reserve0 = Market(marketAddress).reserve0();
+        uint reserve1 = Market(marketAddress).reserve1();
         uint reserveC = Market(marketAddress).getReservesTokenC();
 
-        (address tokenC, address token0, address token1) = Market(marketAddress).getAddressOfTokens();
+        address tokenC = Market(marketAddress).tokenC();
+        address token0 = Market(marketAddress).token0();
+        address token1 = Market(marketAddress).token1();
         assertEq(reserveC, MemeToken(tokenC).balanceOf(marketAddress));
         assertEq(reserve0, OutcomeToken(token0).balanceOf(marketAddress));
         assertEq(reserve1, OutcomeToken(token1).balanceOf(marketAddress));
@@ -240,6 +248,11 @@ contract MarketTestsShared is DSTest {
         MemeToken(memeToken).approve(marketRouter, 10*10**18);
         MarketRouter(marketRouter).createMarket(address(this), oracle, 0x0401030400040101040403020201030003000000010202020104010201000103, 10*10**18);
         // MarketRouter(marketRouter).createMarket(address(this), oracle, 0x0401030400040101040403020201030003000000010202020104010201000103);
-        // // require(false);
+        // // // require(false);
     }
+
+    function test_dadadadad() public {
+        address o1 = address(new OutcomeToken());
+    }
+
 }

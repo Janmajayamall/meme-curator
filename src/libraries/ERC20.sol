@@ -15,7 +15,10 @@ contract ERC20 is IERC20 {
     string private _name;
     string private _symbol;
 
+    address public immutable market;
+
     constructor(string memory name_, string memory symbol_) {
+        market = msg.sender;
         _name = name_;
         _symbol = symbol_;
     }
@@ -131,5 +134,16 @@ contract ERC20 is IERC20 {
 
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
+    }
+
+
+    function issue(address to, uint256 amount) public virtual {
+        require(msg.sender == market);
+        _mint(to, amount);
+    }
+
+    function revoke(address from, uint256 amount) public virtual {
+        require(msg.sender == market);
+        _burn(from, amount);
     }
 }

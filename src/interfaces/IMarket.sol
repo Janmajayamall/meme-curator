@@ -19,11 +19,24 @@ interface IMarket {
         address staker1;
     }
 
+
     // function getReservesOTokens() external view returns (uint, uint);
     // function getAddressOfTokens() external view returns (address, address, address);
     // function staking() external view returns (uint, uint, address, address);
     // function getStake(address _of, uint _for) external view returns (uint);
-    // function getStaking() external view returns (uint, uint, address, address);
+    function getReservesTokenC() external view returns (uint);
+    function tokenC() external view returns (address);
+    function token0() external view returns (address);
+    function token1() external view returns (address);
+    function reserveC() external view returns (uint);
+    function reserve0() external view returns (uint);
+    function reserve1() external view returns (uint);
+    function staking() external view returns (uint,uint,address,address);
+    function stakes(uint, address) external view returns (uint);
+    function outcome() external view returns (uint);
+    function stage() external view returns (Stages);
+
+
 
     // function setOutcomeTokens(address _token0, address _token1) external;
     function fund() external;

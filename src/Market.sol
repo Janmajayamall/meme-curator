@@ -9,33 +9,33 @@ import './interfaces/IModerationCommitee.sol';
 
 contract Market is IMarket {
 
-    uint256 reserve0;
-    uint256 reserve1;
-    uint256 reserveC;
+    uint256 public override reserve0;
+    uint256 public override reserve1;
+    uint256 public override reserveC;
 
-    address public token0;
-    address public token1;
-    address public tokenC;
+    address public override token0;
+    address public override token1;
+    address public override tokenC;
 
     bytes32 immutable identifier;
     uint expireAtBlock;
     uint expireBufferBlocks;
     address immutable creator;
 
-    uint public outcome = 2;
-    Stages public stage;
+    uint public override outcome = 2;
+    Stages public override stage;
 
     // DON related
     uint256 reserveDoN0;
     uint256 reserveDoN1;
     uint lastOutcomeStaked = 2;
-    Staking public staking;
+    Staking public override staking;
     uint donEscalationCount;
     uint donEscalationLimit;
     uint donBufferEndsAtBlock;
     uint donBufferBlocks; 
     // (0) or (1) outcome index -> staker's address => amount
-    mapping(address => uint256)[2] public stakes;
+    mapping(address => uint256)[2] public override stakes;
 
     // final resolution related
     address immutable oracle;
@@ -128,7 +128,7 @@ contract Market is IMarket {
         emit MarketCreated(address(this), _creator, _oracle, _identifier, _tokenC);
     }
 
-    function getReservesTokenC() public view returns (uint reserves){
+    function getReservesTokenC() public view override returns (uint reserves){
         reserves = reserveC+reserveDoN0+reserveDoN1;
     }
 
@@ -143,7 +143,7 @@ contract Market is IMarket {
     //     _token1 = token1;
     // }
 
-    function setOutcomeByExpiry() private {
+    function setOutcomeByExpiry() private {           
         // set the outcome as the last staked outcome, if any & close the market
         if (lastOutcomeStaked == 0){
             outcome = 0;

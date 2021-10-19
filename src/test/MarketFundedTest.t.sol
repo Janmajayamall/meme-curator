@@ -43,7 +43,8 @@ contract MarketFundedTest is MarketTestsShared {
         assertEq(MemeToken(memeToken).balanceOf(expectedAddress), _fundingAmount);
 
         // check outcome token balances == _fundingAmount
-        (, address token0, address token1) = Market(expectedAddress).getAddressOfTokens();
+        address token0 = Market(expectedAddress).token0();
+        address token1 = Market(expectedAddress).token1();
         assertEq(OutcomeToken(token0).balanceOf(expectedAddress), _fundingAmount);
         assertEq(OutcomeToken(token1).balanceOf(expectedAddress), _fundingAmount);
     }
@@ -56,7 +57,8 @@ contract MarketFundedTest is MarketTestsShared {
         uint a1 = uint(_a1);
         uint a = Math.getAmountCToBuyTokens(a0, a1, _fundingAmount, _fundingAmount);
         MemeToken(memeToken).transfer(marketAddress, a);
-        (, address token0, address token1) = Market(marketAddress).getAddressOfTokens();
+        address token0 = Market(marketAddress).token0();
+        address token1 = Market(marketAddress).token1();
         uint token0BalanceBefore = OutcomeToken(token0).balanceOf(address(this));
         uint token1BalanceBefore = OutcomeToken(token1).balanceOf(address(this));
         Market(marketAddress).buy(a0, a1, address(this));
@@ -79,7 +81,8 @@ contract MarketFundedTest is MarketTestsShared {
 
         // sell tokens
         uint sa = Math.getAmountCBySellTokens(a0, a1, _fundingAmount + a - a0, _fundingAmount + a - a1);
-        (, address token0, address token1) = Market(marketAddress).getAddressOfTokens();
+        address token0 = Market(marketAddress).token0();
+        address token1 = Market(marketAddress).token1();
         OutcomeToken(token0).transfer(marketAddress, a0);
         OutcomeToken(token1).transfer(marketAddress, a1);
         uint memeBalanceBefore = MemeToken(memeToken).balanceOf(address(this));
@@ -130,7 +133,8 @@ contract MarketFundedTest is MarketTestsShared {
 
         expireMarket();
 
-        (uint r0, uint r1) = Market(marketAddress).getReservesOTokens();
+        uint r0 = Market(marketAddress).reserve0();
+        uint r1 = Market(marketAddress).reserve1();
         uint a = Math.getAmountCToBuyTokens(10*10**18, 0, r0, r1);
         MemeToken(memeToken).transfer(marketAddress, a);
         Market(marketAddress).buy(10*10**18, 0, address(this));
