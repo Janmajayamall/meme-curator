@@ -253,16 +253,16 @@ contract MarketTestsShared is DSTest {
         commonSetup();
     }
 
-    function test_dawda() public {
-        // bytes memory initCode = type(Market).creationCode;
-        // initHash = keccak256(initCode);
-        emit log_named_bytes32("INIT HASHCODE", getMarketContractInitBytecodeHash());
-        // require(false);
-        MemeToken(memeToken).approve(marketRouter, 10*10**18);
-        MarketRouter(marketRouter).createMarket(address(this), oracle, 0x0401030400040101040403020201030003000000010202020104010201000103, 10*10**18);
-        // MarketRouter(marketRouter).createMarket(address(this), oracle, 0x0401030400040101040403020201030003000000010202020104010201000103);
-        // // // require(false);
-    }
+    // function test_dawda() public {
+    //     // bytes memory initCode = type(Market).creationCode;
+    //     // initHash = keccak256(initCode);
+    //     emit log_named_bytes32("INIT HASHCODE", getMarketContractInitBytecodeHash());
+    //     // require(false);
+    //     MemeToken(memeToken).approve(marketRouter, 10*10**18);
+    //     MarketRouter(marketRouter).createMarket(address(this), oracle, 0x0401030400040101040403020201030003000000010202020104010201000103, 10*10**18);
+    //     // MarketRouter(marketRouter).createMarket(address(this), oracle, 0x0401030400040101040403020201030003000000010202020104010201000103);
+    //     // // // require(false);
+    // }
 
     // function test_dadadadad() public {
     //     address o1 = address(new OutcomeToken());

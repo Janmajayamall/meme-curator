@@ -325,4 +325,87 @@ contract MarketBuffer is MarketTestsShared {
         uint tokenCBalanceAfter =  MemeToken(memeToken).balanceOf(address(this));
         assertEq(tokenCBalanceAfter-tokenCBalanceBefore, expectedWin);
     }
-}
+
+    /* 
+    Tests for buffer period is zero
+     */
+     function checkStateMarketExpiresWithNoBufferPeriod() internal {
+        // change oracle's donEscalationLimit to zero & create a new default market
+        OracleMultiSig(oracle).addTxChangeDoNBufferBlocks(0);
+        assertEq(OracleMultiSig(oracle).donBufferBlocks(), 0);
+
+        createMarket(0x0101000100010001010101000101000001010001010100000101000001010101, 1*10**18);
+        simTradesInFavorOfOutcome0();
+        expireMarket();
+     }
+
+     function test_zeroBufferBlocksResolveToFavoredOutcome() public {
+        checkStateMarketExpiresWithNoBufferPeriod();
+
+        assertEq(uint(Market(marketAddress).stage()), 1); // stage is still MarketFunded
+        assertEq(Market(marketAddress).outcome(), 2); // outcome hasn't been set
+
+        // redeem winnings
+        redeemWinning(0, 10*10**18, 0);
+        keepReservesAndBalsInCheck();
+        redeemWinning(1, 4*10**18, 0);
+        keepReservesAndBalsInCheck();
+
+        assertEq(uint(Market(marketAddress).stage()), 4); // MarketClosed
+        assertEq(Market(marketAddress).outcome(), 0); // outcome has been set to favored outcome
+
+     }
+
+     // stake outcome fails
+     function testFail_zeroBufferBlocksStakeOutcome() public {
+        checkStateMarketExpiresWithNoBufferPeriod();
+        simStakingRoundsBeforeEscalationLimit(2);
+     }
+
+     // set outcomme fails
+     function testFail_zeroBufferBlocksSetOutcome() public {
+        checkStateMarketExpiresWithNoBufferPeriod();   
+        OracleMultiSig(oracle).addTxSetMarketOutcome(0, marketAddress);
+        assertEq(Market(marketAddress).outcome(), 0);
+     }
+
+     /* 
+     Tests for beffer period & escalation limit are zero.
+     Note - Preference is given to buffer period, thus market resolves to favored outcome right after expiration
+      */
+ 
+     function checkStateMarketExpiresWithNoBufferPeriod0EscalationLimit() internal {
+        // change oracle's donEscalationLimit to zero & create a new default market
+        OracleMultiSig(oracle).addTxChangeDoNBufferBlocks(0);
+        assertEq(OracleMultiSig(oracle).donBufferBlocks(), 0);
+        OracleMultiSig(oracle).addTxChangeDonEscalationLimit(0);
+        assertEq(OracleMultiSig(oracle).donEscalationLimit(), 0);
+
+        createMarket(0x0101000100010001010101000101000001010001010100000101000001010101, 1*10**18);
+        simTradesInFavorOfOutcome0();
+        expireMarket();
+     }
+
+     function test_zeroBufferBlocks0EscalationLimitResolveToFavoredOutcome() public {
+        checkStateMarketExpiresWithNoBufferPeriod0EscalationLimit();
+
+        assertEq(uint(Market(marketAddress).stage()), 1); // stage is still MarketFunded
+        assertEq(Market(marketAddress).outcome(), 2); // outcome hasn't been set
+
+        // redeem winnings
+        redeemWinning(0, 10*10**18, 0);
+        keepReservesAndBalsInCheck();
+        redeemWinning(1, 4*10**18, 0);
+        keepReservesAndBalsInCheck();
+
+        assertEq(uint(Market(marketAddress).stage()), 4); // MarketClosed
+        assertEq(Market(marketAddress).outcome(), 0); // outcome has been set to favored outcome
+     }
+
+     function testFail_zeroBufferBlocks0EscalationLimitSetOutcome() public {
+        checkStateMarketExpiresWithNoBufferPeriod0EscalationLimit();  
+        OracleMultiSig(oracle).addTxSetMarketOutcome(0, marketAddress);
+        assertEq(Market(marketAddress).outcome(), 0);
+     }
+        
+} 

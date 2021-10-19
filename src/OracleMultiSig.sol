@@ -101,4 +101,12 @@ contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
             );
         submitTransaction(address(this), 0, data);
     }
+
+    function addTxChangeDoNBufferBlocks(uint _donBufferBlocks) external ownerExists(msg.sender) {
+        bytes memory data = abi.encodeWithSignature(
+            "changeDonBufferBlocks(uint256)", 
+            _donBufferBlocks
+            );
+        submitTransaction(address(this), 0, data);
+    }
 }
