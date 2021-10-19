@@ -112,7 +112,7 @@ contract MarketRouter {
         }else {
             amountInToken0 = Math.getTokenAmountToSellForAmountC(amountInToken1, fixedTokenIndex, _reserve0, _reserve1, amountOutTokenC);
         }
-        require(amountInToken0 <= amountInToken0Max && amountInToken1 <= amountInToken1Max);
+        require(amountInToken0 <= amountInToken0Max && amountInToken1 <= amountInToken1Max, "TRADE: INVALID");
 
         address token0 = IMarket(market).token0();
         address token1 = IMarket(market).token1();
@@ -128,8 +128,8 @@ contract MarketRouter {
         address market = getMarketAddress(creator, oracle, identifier);
         address tokenC = IMarket(market).tokenC();
         (uint amount0,  uint amount1, ,) = IMarket(market).staking();
-        require(amount0*2 <= amountIn);
-        require(amount1*2 <= amountIn);
+        require(amount0*2 <= amountIn, "ERR: DOUBLE");
+        require(amount1*2 <= amountIn, "ERR: DOUBLE");
         TransferHelper.safeTransferFrom(tokenC, msg.sender, market, amountIn);
         IMarket(market).stakeOutcome(_for, msg.sender);
     }
@@ -138,9 +138,9 @@ contract MarketRouter {
     function redeemWinning(uint _for, uint amountInToken, address creator, address oracle, bytes32 identifier) external {
         address market = getMarketAddress(creator, oracle, identifier);
         address tokenAdd;
-        if (_for == 0) IMarket(market).token0();
-        if (_for == 1) IMarket(market).token1();
-        TransferHelper.safeTransfer(tokenAdd, market, amountInToken);
+        if (_for == 0) tokenAdd = IMarket(market).token0();
+        if (_for == 1) tokenAdd = IMarket(market).token1();
+        TransferHelper.safeTransferFrom(tokenAdd, msg.sender, market, amountInToken);
         IMarket(market).redeemWinning(_for, msg.sender);
     }
 }

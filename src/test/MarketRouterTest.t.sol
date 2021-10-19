@@ -11,90 +11,12 @@ import './../libraries/Math.sol';
 import './../OutcomeToken.sol';
 import './../Market.sol';
 import './../libraries/ERC20.sol';
+import './Shared.t.sol';
 
-contract MarketTestsShared is DSTest {
-
-    struct OracleConfig {
-        bool isActive;
-        uint feeNum;
-        uint feeDenom;
-        address tokenC;
-        uint expireAfterBlocks;
-        uint donEscalationLimit;
-        uint donBufferBlocks;
-        uint resolutionBufferBlocks;
-    }
-
-    address marketAddress;
-    bytes32 defaultIdentifier = 0x0401030400040101040403020201030003000000010202020104010201000103;
-    address marketFactory;
-    address marketRouter;
-    address oracle;
-    address memeToken;
-    OracleConfig sharedOracleConfig;
-
-    address hevm = 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D;
+contract MarketRouterTest is DSTest, Shared {
 
     function setUp() public {
-        marketFactory = address(new MarketFactory());
-        marketRouter = address(new MarketRouter(marketFactory));
-
-        memeToken = address(new MemeToken());
-        MemeToken(memeToken).mint(address(this), type(uint).max);
-
-        address[] memory oracleOwners = new address[](1);
-        oracleOwners[0] = address(this);
-        oracle = address(new OracleMultiSig(oracleOwners, 1, 10));
-        sharedOracleConfig = OracleConfig(true, 10, 100, memeToken, 10, 5, 10, 10);
-        OracleMultiSig(oracle).addTxSetupOracle(
-            sharedOracleConfig.isActive,
-            sharedOracleConfig.feeNum,
-            sharedOracleConfig.feeDenom,
-            sharedOracleConfig.tokenC,
-            sharedOracleConfig.expireAfterBlocks,
-            sharedOracleConfig.donEscalationLimit,
-            sharedOracleConfig.donBufferBlocks,
-            sharedOracleConfig.resolutionBufferBlocks
-        );
-    }
-
-    function createDefaultMarket() internal {
-        uint _funding = 10*10**18;
-        MemeToken(memeToken).approve(marketRouter, _funding);
-        MarketRouter(marketRouter).createMarket(address(this), oracle, defaultIdentifier, _funding);
-        marketAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, defaultIdentifier);
-    }
-
-    function getMarketReserves() internal returns (uint rC, uint r0, uint r1){
-        rC = Market(marketAddress).reserveC() + Market(marketAddress).reserveDoN0() + Market(marketAddress).reserveDoN1();
-        r0 = Market(marketAddress).reserve0();
-        r1 = Market(marketAddress).reserve1();
-    }
-
-    function getAmounCToBuyTokens(uint a0, uint a1) internal returns (uint a){
-        (uint rc, uint r0, uint r1) = getMarketReserves();
-        a = Math.getAmountCToBuyTokens(a0, a1, r0, r1);
-    }
-
-    function getTokenAmountToBuyWithAmountC(uint fixedTokenAmount, uint fixedTokenIndex, uint a) internal returns (uint tokenAmount) {
-        (uint rc, uint r0, uint r1) = getMarketReserves();
-        tokenAmount = Math.getTokenAmountToBuyWithAmountC(fixedTokenAmount, fixedTokenIndex, r0, r1, a);
-    }
-
-    function getAmountCBySellTokens(uint a0, uint a1) internal returns (uint a){
-        (uint rc, uint r0, uint r1) = getMarketReserves();
-        a = Math.getAmountCBySellTokens(a0, a1, r0, r1);
-    }
-
-    function getTokenAmountToSellForAmountC(uint fixedTokenAmount, uint fixedTokenIndex, uint a) internal returns (uint tokenAmount) {
-        (uint rc, uint r0, uint r1) = getMarketReserves();
-        tokenAmount = Math.getTokenAmountToSellForAmountC(fixedTokenAmount, fixedTokenIndex, r0, r1, a);
-    }
-
-    function getTokenBalances(address _of) internal returns (uint balanceC, uint balance0, uint balance1) {
-        balanceC = MemeToken(memeToken).balanceOf(_of);
-        balance0 = OutcomeToken(Market(marketAddress).token0()).balanceOf(_of);
-        balance1 = OutcomeToken(Market(marketAddress).token1()).balanceOf(_of);
+        commonSetup();
     }
 
     function test_createMarket(bytes32 _identifier, uint amount) external {
@@ -124,7 +46,7 @@ contract MarketTestsShared is DSTest {
         uint a1 = 4*10**18;
         uint a = getAmounCToBuyTokens(a0, a1);
         MemeToken(memeToken).approve(marketRouter, a);
-        MarketRouter(marketRouter).buyExactTokensForMaxCTokens(a0, a1, a, address(this), oracle, defaultIdentifier);
+        MarketRouter(marketRouter).buyExactTokensForMaxCTokens(a0, a1, a, address(this), oracle, sharedIdentifier);
 
         (uint bCAfter, uint b0After, uint b1After) = getTokenBalances(address(this));
 
@@ -142,7 +64,7 @@ contract MarketTestsShared is DSTest {
         uint a1 = 4*10**18;
         uint a = getAmounCToBuyTokens(a0, a1);
         MemeToken(memeToken).approve(marketRouter, a);
-        MarketRouter(marketRouter).buyExactTokensForMaxCTokens(a0, a1, a-1, address(this), oracle, defaultIdentifier);
+        MarketRouter(marketRouter).buyExactTokensForMaxCTokens(a0, a1, a-1, address(this), oracle, sharedIdentifier);
     }
 
     function test_buyMinTokensForExactCTokens() external {
@@ -155,7 +77,7 @@ contract MarketTestsShared is DSTest {
         uint a1 = 0;
         uint a0 = getTokenAmountToBuyWithAmountC(0, 1, a);
         MemeToken(memeToken).approve(marketRouter, a);
-        MarketRouter(marketRouter).buyMinTokensForExactCTokens(a0, a1, a, 1, address(this), oracle, defaultIdentifier);
+        MarketRouter(marketRouter).buyMinTokensForExactCTokens(a0, a1, a, 1, address(this), oracle, sharedIdentifier);
 
         (uint bCAfter, uint b0After, uint b1After) = getTokenBalances(address(this));
 
@@ -172,7 +94,7 @@ contract MarketTestsShared is DSTest {
         uint a1 = 0;
         uint a0 = getTokenAmountToBuyWithAmountC(0, 1, a);
         MemeToken(memeToken).approve(marketRouter, a);
-        MarketRouter(marketRouter).buyMinTokensForExactCTokens(a0+1, a1, a, 1, address(this), oracle, defaultIdentifier);
+        MarketRouter(marketRouter).buyMinTokensForExactCTokens(a0+1, a1, a, 1, address(this), oracle, sharedIdentifier);
     }
 
     function test_sellExactTokensForMinCTokens() external {
@@ -183,7 +105,7 @@ contract MarketTestsShared is DSTest {
         uint a1 = 4*10**18;
         uint a = getAmounCToBuyTokens(a0, a1);
         MemeToken(memeToken).approve(marketRouter, a);
-        MarketRouter(marketRouter).buyExactTokensForMaxCTokens(a0, a1, a, address(this), oracle, defaultIdentifier);
+        MarketRouter(marketRouter).buyExactTokensForMaxCTokens(a0, a1, a, address(this), oracle, sharedIdentifier);
 
         (uint bCBefore, uint b0Before, uint b1Before) = getTokenBalances(address(this));
 
@@ -193,7 +115,7 @@ contract MarketTestsShared is DSTest {
         a = getAmountCBySellTokens(a0, a1);
         OutcomeToken(Market(marketAddress).token0()).approve(marketRouter, a0);
         OutcomeToken(Market(marketAddress).token1()).approve(marketRouter, a1);
-        MarketRouter(marketRouter).sellExactTokensForMinCTokens(a0, a1, a, address(this), oracle, defaultIdentifier);
+        MarketRouter(marketRouter).sellExactTokensForMinCTokens(a0, a1, a, address(this), oracle, sharedIdentifier);
 
         (uint bCAfter, uint b0After, uint b1After) = getTokenBalances(address(this));
 
@@ -210,7 +132,7 @@ contract MarketTestsShared is DSTest {
         uint a1 = 4*10**18;
         uint a = getAmounCToBuyTokens(a0, a1);
         MemeToken(memeToken).approve(marketRouter, a);
-        MarketRouter(marketRouter).buyExactTokensForMaxCTokens(a0, a1, a, address(this), oracle, defaultIdentifier);
+        MarketRouter(marketRouter).buyExactTokensForMaxCTokens(a0, a1, a, address(this), oracle, sharedIdentifier);
 
         /// sell
         a0 = 2*10**18;
@@ -218,7 +140,7 @@ contract MarketTestsShared is DSTest {
         a = getAmountCBySellTokens(a0, a1);
         OutcomeToken(Market(marketAddress).token0()).approve(marketRouter, a0);
         OutcomeToken(Market(marketAddress).token1()).approve(marketRouter, a1);
-        MarketRouter(marketRouter).sellExactTokensForMinCTokens(a0, a1, a+1, address(this), oracle, defaultIdentifier);
+        MarketRouter(marketRouter).sellExactTokensForMinCTokens(a0, a1, a+1, address(this), oracle, sharedIdentifier);
     }
 
     /* Error */
@@ -230,7 +152,7 @@ contract MarketTestsShared is DSTest {
         uint a1 = 4*10**18;
         uint a = getAmounCToBuyTokens(a0, a1);
         MemeToken(memeToken).approve(marketRouter, a);
-        MarketRouter(marketRouter).buyExactTokensForMaxCTokens(a0, a1, a, address(this), oracle, defaultIdentifier);
+        MarketRouter(marketRouter).buyExactTokensForMaxCTokens(a0, a1, a, address(this), oracle, sharedIdentifier);
 
         (uint bCBefore, uint b0Before, uint b1Before) = getTokenBalances(address(this));
 
@@ -240,7 +162,7 @@ contract MarketTestsShared is DSTest {
         a0 = getTokenAmountToSellForAmountC(a1, 1, a);
         OutcomeToken(Market(marketAddress).token0()).approve(marketRouter, a0);
         OutcomeToken(Market(marketAddress).token1()).approve(marketRouter, a1);
-        MarketRouter(marketRouter).sellExactTokensForMinCTokens(a0, a1, a, address(this), oracle, defaultIdentifier);
+        MarketRouter(marketRouter).sellMaxTokensForExactCTokens(a0, a1, a, 1, address(this), oracle, sharedIdentifier);
 
         (uint bCAfter, uint b0After, uint b1After) = getTokenBalances(address(this));
 
@@ -249,7 +171,7 @@ contract MarketTestsShared is DSTest {
         assertEq(b1After, b1Before-a1);
     }
 
-    function testF_sellMaxTokensForExactCTokens() external {
+    function testFail_sellMaxTokensForExactCTokens() external {
         createDefaultMarket();
 
         // buy
@@ -257,7 +179,7 @@ contract MarketTestsShared is DSTest {
         uint a1 = 4*10**18;
         uint a = getAmounCToBuyTokens(a0, a1);
         MemeToken(memeToken).approve(marketRouter, a);
-        MarketRouter(marketRouter).buyExactTokensForMaxCTokens(a0, a1, a, address(this), oracle, defaultIdentifier);
+        MarketRouter(marketRouter).buyExactTokensForMaxCTokens(a0, a1, a, address(this), oracle, sharedIdentifier);
 
         /// sell
         a = 1*10**18;
@@ -265,7 +187,57 @@ contract MarketTestsShared is DSTest {
         a0 = getTokenAmountToSellForAmountC(a1, 1, a);
         OutcomeToken(Market(marketAddress).token0()).approve(marketRouter, a0);
         OutcomeToken(Market(marketAddress).token1()).approve(marketRouter, a1);
-        MarketRouter(marketRouter).sellExactTokensForMinCTokens(a0, a1, a+1, address(this), oracle, defaultIdentifier);
+        MarketRouter(marketRouter).sellMaxTokensForExactCTokens(a0-1, a1, a, 1, address(this), oracle, sharedIdentifier);
     }
 
-}
+    function test_stakeForOutcome() public {
+        createDefaultMarket();
+        expireMarket();
+        MemeToken(memeToken).approve(marketRouter, 2*10**18);
+        MarketRouter(marketRouter).stakeForOutcome(0, 2*10**18, address(this), oracle, sharedIdentifier);
+        assertEq(Market(marketAddress).stakes(0, address(this)), 2*10**18);
+    }
+
+    function testFail_lessThanDoubleStakeOutcome() public {
+        createDefaultMarket();
+        expireMarket();
+        MemeToken(memeToken).approve(marketRouter, 2*10**18);
+        MarketRouter(marketRouter).stakeForOutcome(0, 2*10**18, address(this), oracle, sharedIdentifier);
+        MemeToken(memeToken).approve(marketRouter, 4*10**18);
+        MarketRouter(marketRouter).stakeForOutcome(1, 4*10**18, address(this), oracle, sharedIdentifier);
+        MemeToken(memeToken).approve(marketRouter, (8*10**18)-1);
+        MarketRouter(marketRouter).stakeForOutcome(0, (8*10**18)-1, address(this), oracle, sharedIdentifier);
+    }
+
+    function test_redeemWinning() public {
+        createDefaultMarket();
+
+        // buy
+        uint a0 = 5*10**18;
+        uint a1 = 4*10**18;
+        uint a = getAmounCToBuyTokens(a0, a1);
+        MemeToken(memeToken).approve(marketRouter, a);
+        MarketRouter(marketRouter).buyExactTokensForMaxCTokens(a0, a1, a, address(this), oracle, sharedIdentifier);
+
+        expireMarket();
+        expireBufferPeriod();
+
+        // redeem winning outcome
+        (uint bCBefore, uint b0Before, uint b1Before) = getTokenBalances(address(this));
+        OutcomeToken(Market(marketAddress).token0()).approve(marketRouter, a0);
+        MarketRouter(marketRouter).redeemWinning(0, a0, address(this), oracle, sharedIdentifier);
+        (uint bCAfter, uint b0After, uint b1After) = getTokenBalances(address(this));
+        assertEq(bCAfter, bCBefore+a0);
+        assertEq(b0After, b0Before-a0);
+        assertEq(b1After, b1Before);
+
+        // redeem losing outcome
+        (bCBefore, b0Before, b1Before) = getTokenBalances(address(this));
+        OutcomeToken(Market(marketAddress).token1()).approve(marketRouter, a1);
+        MarketRouter(marketRouter).redeemWinning(1, a1, address(this), oracle, sharedIdentifier);
+        (bCAfter, b0After, b1After) = getTokenBalances(address(this));
+        assertEq(bCAfter, bCBefore);
+        assertEq(b0After, b0Before);
+        assertEq(b1After, b1Before-a1);
+    }
+}   
