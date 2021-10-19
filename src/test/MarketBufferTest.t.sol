@@ -11,7 +11,7 @@ import './../MarketRouter.sol';
 import './../libraries/Math.sol';
 import './../OutcomeToken.sol';
 
-contract MarketBuffer is MarketTestsShared {
+contract MarketBufferTest is MarketTestsShared {
     function setUp() override public {
         commonSetup();
         createDefaultMarket();

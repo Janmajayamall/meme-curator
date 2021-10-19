@@ -11,7 +11,7 @@ import './../libraries/Math.sol';
 import './../OutcomeToken.sol';
 import "./MarketTestsShared.t.sol";
 
-contract MarketResolve is MarketTestsShared {
+contract MarketResolveTest is MarketTestsShared {
 
     function setUp() override public {
         commonSetup();
