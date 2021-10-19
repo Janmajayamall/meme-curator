@@ -123,15 +123,15 @@ contract MemeToken is IERC20 {
     }
 
     function _approve(
-        address owner,
+        address _owner,
         address spender,
         uint256 amount
     ) internal virtual {
-        require(owner != address(0), "ERC20: approve from the zero address");
+        require(_owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
 
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
+        _allowances[_owner][spender] = amount;
+        emit Approval(_owner, spender, amount);
     }
 
     function mint(address to, uint256 amount) public {

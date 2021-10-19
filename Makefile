@@ -26,7 +26,7 @@ size-main :; ./scripts/contract-size-main.sh
 check-inter :; ./scripts/check-inter.sh
  
 # Deployment helpers
-deploy :; @./scripts/deploy.sh
+deploy-dev :; @./scripts/deploy-dev.sh
 
 # mainnet
 deploy-mainnet: export ETH_RPC_URL = $(call network,mainnet)
