@@ -2,12 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import './interfaces/IERC20.sol';
-import './libraries/ERC20.sol';
-import './MarketFactory.sol';
+import './interfaces/IOutcomeToken.sol';
 
-
-contract OutcomeToken is IERC20 {
+contract OutcomeToken is IOutcomeToken {
     mapping(address => uint256) private _balances;
 
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -136,13 +133,12 @@ contract OutcomeToken is IERC20 {
         emit Approval(owner, spender, amount);
     }
 
-
-    function issue(address to, uint256 amount) public virtual {
+    function issue(address to, uint256 amount) public override virtual {
         require(msg.sender == market);
         _mint(to, amount);
     }
 
-    function revoke(address from, uint256 amount) public virtual {
+    function revoke(address from, uint256 amount) public override virtual {
         require(msg.sender == market);
         _burn(from, amount);
     }

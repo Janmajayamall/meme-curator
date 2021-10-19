@@ -2,12 +2,10 @@
 
 pragma solidity ^0.8.0;
 
-import './libraries/TransferHelper.sol';
-import './OutcomeToken.sol';
-import './interfaces/IMarket.sol';
 import './Market.sol';
+import './interfaces/IMarketFactory.sol';
 
-contract MarketFactory {
+contract MarketFactory is IMarketFactory {
 
     struct DeployParams {
         address creator;
@@ -15,9 +13,9 @@ contract MarketFactory {
         bytes32 identifier;
     }
 
-    DeployParams public deployParams;
+    DeployParams public override deployParams;
 
-    function createMarket(address _creator, address _oracle, bytes32 _identifier) external {
+    function createMarket(address _creator, address _oracle, bytes32 _identifier) override external {
         deployParams = DeployParams({creator: _creator, oracle: _oracle, identifier: _identifier});
         new Market{salt: keccak256(abi.encode(_creator, _oracle, _identifier))}();
         delete deployParams;

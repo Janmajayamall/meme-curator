@@ -15,7 +15,6 @@ contract MarketBufferTest is MarketTestsShared {
     function setUp() override public {
         commonSetup();
         createDefaultMarket();
-        emit log_named_bytes32("INIT HASHCODE", getMarketContractInitBytecodeHash());
     }
 
     /* 

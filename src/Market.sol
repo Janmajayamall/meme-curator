@@ -3,9 +3,11 @@
 pragma solidity ^0.8.0;
 
 import './OutcomeToken.sol';
-import './MarketFactory.sol';
+import './interfaces/IMarketFactory.sol';
 import './interfaces/IMarket.sol';
 import './interfaces/IModerationCommitee.sol';
+import './interfaces/IOutcomeToken.sol';
+import './interfaces/IERC20.sol';
 
 contract Market is IMarket {
 
@@ -107,7 +109,7 @@ contract Market is IMarket {
     }
 
     constructor(){
-        (address _creator, address _oracle, bytes32 _identifier) = MarketFactory(msg.sender).deployParams();
+        (address _creator, address _oracle, bytes32 _identifier) = IMarketFactory(msg.sender).deployParams();
         (bool _isActive, address _tokenC, uint[6] memory details) = IModerationCommitte(_oracle).getMarketParams();
         require(_isActive == true, "ORACLE INACTIVE");
         require(details[0] <= details[1], "INVALID FEE");
@@ -166,8 +168,8 @@ contract Market is IMarket {
         require (stage == Stages.MarketCreated);
         uint amount = IERC20(tokenC).balanceOf(address(this)); // tokenC reserve is 0 at this point
         
-        OutcomeToken(token0).issue(address(this), amount);
-        OutcomeToken(token1).issue(address(this), amount);   
+        IOutcomeToken(token0).issue(address(this), amount);
+        IOutcomeToken(token1).issue(address(this), amount);   
 
         reserve0 += amount;
         reserve1 += amount;
@@ -203,12 +205,12 @@ contract Market is IMarket {
         uint amount = balance - reserveTokenC;
 
         // buying all tokens
-        OutcomeToken(_token0).issue(address(this), amount);
-        OutcomeToken(_token1).issue(address(this), amount);
+        IOutcomeToken(_token0).issue(address(this), amount);
+        IOutcomeToken(_token1).issue(address(this), amount);
 
         // transfer
-        if (amount0 > 0) OutcomeToken(_token0).transfer(to, amount0);
-        if (amount1 > 0) OutcomeToken(_token1).transfer(to, amount1);
+        if (amount0 > 0) IOutcomeToken(_token0).transfer(to, amount0);
+        if (amount1 > 0) IOutcomeToken(_token1).transfer(to, amount1);
 
         uint _reserve0New = (_reserve0 + amount) - amount0;
         uint _reserve1New = (_reserve1 + amount) - amount1;
@@ -228,14 +230,14 @@ contract Market is IMarket {
 
         IERC20(_tokenC).transfer(to, amount);
 
-        uint balance0 = OutcomeToken(token0).balanceOf(address(this));
-        uint balance1 = OutcomeToken(token1).balanceOf(address(this));
+        uint balance0 = IOutcomeToken(token0).balanceOf(address(this));
+        uint balance1 = IOutcomeToken(token1).balanceOf(address(this));
         uint amount0 = balance0 - _reserve0;
         uint amount1 = balance1 - _reserve1;
 
         // burn outcome tokens
-        OutcomeToken(token0).revoke(address(this), amount);
-        OutcomeToken(token1).revoke(address(this), amount);
+        IOutcomeToken(token0).revoke(address(this), amount);
+        IOutcomeToken(token1).revoke(address(this), amount);
 
         uint _reserve0New = (_reserve0 + amount0) - amount;
         uint _reserve1New = (_reserve1 + amount1) - amount;
@@ -252,14 +254,14 @@ contract Market is IMarket {
         uint amount;
         if (_for == 0){
             address _token0 = token0;
-            uint balance = OutcomeToken(_token0).balanceOf(address(this));
+            uint balance = IOutcomeToken(_token0).balanceOf(address(this));
             amount = balance - reserve0;
-            OutcomeToken(_token0).revoke(address(this), amount);
+            IOutcomeToken(_token0).revoke(address(this), amount);
         }else if (_for == 1){
             address _token1 = token1;
-            uint balance = OutcomeToken(_token1).balanceOf(address(this));
+            uint balance = IOutcomeToken(_token1).balanceOf(address(this));
             amount = balance - reserve1;
-            OutcomeToken(_token1).revoke(address(this), amount);
+            IOutcomeToken(_token1).revoke(address(this), amount);
         }
 
         uint _outcome = outcome;
@@ -393,8 +395,8 @@ contract Market is IMarket {
         require(msg.sender == _creator);
         uint _reserve0 = reserve0;
         uint _reserve1 = reserve1;
-        TransferHelper.safeTransfer(token0, _creator, _reserve0);
-        TransferHelper.safeTransfer(token1, _creator, _reserve1);
+        IOutcomeToken(token0).transfer(_creator, _reserve0);
+        IOutcomeToken(token1).transfer(_creator, _reserve1);
         reserve0 = 0;
         reserve1 = 0;
     }

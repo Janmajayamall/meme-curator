@@ -19,11 +19,6 @@ interface IMarket {
         address staker1;
     }
 
-
-    // function getReservesOTokens() external view returns (uint, uint);
-    // function getAddressOfTokens() external view returns (address, address, address);
-    // function staking() external view returns (uint, uint, address, address);
-    // function getStake(address _of, uint _for) external view returns (uint);
     function getReservesTokenC() external view returns (uint);
     function tokenC() external view returns (address);
     function token0() external view returns (address);
@@ -36,9 +31,6 @@ interface IMarket {
     function outcome() external view returns (uint);
     function stage() external view returns (Stages);
 
-
-
-    // function setOutcomeTokens(address _token0, address _token1) external;
     function fund() external;
     function buy(uint amount0, uint amount1, address to) external;   
     function sell(uint amount, address to) external;

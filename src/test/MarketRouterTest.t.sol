@@ -10,7 +10,6 @@ import './../MarketRouter.sol';
 import './../libraries/Math.sol';
 import './../OutcomeToken.sol';
 import './../Market.sol';
-import './../libraries/ERC20.sol';
 import './Shared.t.sol';
 
 contract MarketRouterTest is DSTest, Shared {
@@ -19,13 +18,20 @@ contract MarketRouterTest is DSTest, Shared {
         commonSetup();
     }
 
+    function test_getMarketAddress() external {
+        emit log_named_bytes32("INIT HASHCODE", getMarketContractInitBytecodeHash());
+        assertEq(MarketRouter(marketRouter).getMarketAddress(address(this), oracle, sharedIdentifier), getExpectedMarketAddress(sharedIdentifier));
+    }
+
     function test_createMarket(bytes32 _identifier, uint amount) external {
         if (amount == 0) return;
         MemeToken(memeToken).approve(marketRouter, amount);
         MarketRouter(marketRouter).createMarket(address(this), oracle, _identifier, amount);
         address expectedMarketAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, _identifier);
+        
         assertEq(uint(Market(expectedMarketAddress).stage()), 1);
     }
+    
 
     function testFail_createExistingMarket() external {
         bytes32 _identifier = 0x0401030400040101040403020201030003000000010202020104010201000103;

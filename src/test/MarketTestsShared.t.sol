@@ -10,7 +10,6 @@ import './../MarketRouter.sol';
 import './../libraries/Math.sol';
 import './../OutcomeToken.sol';
 import './../Market.sol';
-import './../libraries/ERC20.sol';
 import './Shared.t.sol';
 
 contract MarketTestsShared is DSTest, Shared {

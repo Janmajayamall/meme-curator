@@ -5,13 +5,13 @@ pragma solidity ^0.8.0;
 import './libraries/TransferHelper.sol';
 import './interfaces/IMarket.sol';
 import './libraries/Math.sol';
-import './MarketFactory.sol';
+import './interfaces/IMarketFactory.sol';
 
 
 contract MarketRouter {
     address public factory;
 
-    bytes32 constant internal MARKET_INIT_CODE_HASH = 0x9b8b500862eba380d76167b7d6f4b2b9b340125750b1e81abfe0991251612cc7;
+    bytes32 constant internal MARKET_INIT_CODE_HASH = 0xd0d04521415d69de73031b45b69ecdd76419fb001b14d20f4c54db3e01a42f39;
 
     constructor(address _factory) {
         factory = _factory;
@@ -35,7 +35,7 @@ contract MarketRouter {
             size := extcodesize(expectedAddress)
         }
         require(size == 0, "Market exists");
-        MarketFactory(factory).createMarket(_creator, _oracle, _identifier);
+        IMarketFactory(factory).createMarket(_creator, _oracle, _identifier);
 
         address tokenC = IMarket(expectedAddress).tokenC();
 
