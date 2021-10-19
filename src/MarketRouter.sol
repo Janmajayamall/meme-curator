@@ -133,4 +133,14 @@ contract MarketRouter {
         TransferHelper.safeTransferFrom(tokenC, msg.sender, market, amountIn);
         IMarket(market).stakeOutcome(_for, msg.sender);
     }
+
+    /// @notice Redeem winning for outcome
+    function redeemWinning(uint _for, uint amountInToken, address creator, address oracle, bytes32 identifier) external {
+        address market = getMarketAddress(creator, oracle, identifier);
+        address tokenAdd;
+        if (_for == 0) IMarket(market).token0();
+        if (_for == 1) IMarket(market).token1();
+        TransferHelper.safeTransfer(tokenAdd, market, amountInToken);
+        IMarket(market).redeemWinning(_for, msg.sender);
+    }
 }
