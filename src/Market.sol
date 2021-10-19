@@ -26,8 +26,8 @@ contract Market is IMarket {
     Stages public override stage;
 
     // DON related
-    uint256 reserveDoN0;
-    uint256 reserveDoN1;
+    uint256 public reserveDoN0;
+    uint256 public reserveDoN1;
     uint lastOutcomeStaked = 2;
     Staking public override staking;
     uint donEscalationCount;

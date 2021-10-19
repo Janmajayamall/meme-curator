@@ -135,7 +135,6 @@ contract MarketTestsShared is DSTest {
         uint a = Math.getAmountCToBuyTokens(a0, a1, sharedFundingAmount, sharedFundingAmount);
         MemeToken(memeToken).transfer(marketAddress, a);
         Market(marketAddress).buy(a0, a1, address(this));
-        emit log_named_address("marketAddress", marketAddress);
         a0 = 0;
         a1 = 4*10**18;
         a = Math.getAmountCToBuyTokens(a0, a1, sharedFundingAmount+a-10*10**18, sharedFundingAmount+a);
@@ -162,6 +161,9 @@ contract MarketTestsShared is DSTest {
         simStakingInfo.stakeAmounts[0] = 0;
         simStakingInfo.stakeAmounts[1] = 0;
         for (uint index = 0; index < escalationLimit; index++) {
+            // advance blocks to test increase in buffer blocks
+            advanceBlocksBy(sharedOracleConfig.donBufferBlocks - (1));
+
             uint _amount = (2*10**18)*(2**index);
             uint _outcome = index % 2;
             MemeToken(memeToken).transfer(marketAddress, _amount); 
@@ -169,6 +171,7 @@ contract MarketTestsShared is DSTest {
             simStakingInfo.lastOutcomeStaked = _outcome;
             simStakingInfo.lastAmountStaked = _amount;
             simStakingInfo.stakeAmounts[_outcome] += _amount;
+
         }
     }
 
@@ -178,6 +181,8 @@ contract MarketTestsShared is DSTest {
         simStakingInfo.stakeAmounts[0] = 0;
         simStakingInfo.stakeAmounts[1] = 0;
         for (uint index = 0; index < escalationLimit-1; index++) {
+            advanceBlocksBy(sharedOracleConfig.donBufferBlocks - (1));
+
             uint _amount = (2*10**18)*(2**index);
             uint _outcome = index % 2;
             MemeToken(memeToken).transfer(marketAddress, _amount); 
@@ -210,14 +215,18 @@ contract MarketTestsShared is DSTest {
     function keepReservesAndBalsInCheck() internal {
         uint reserve0 = Market(marketAddress).reserve0();
         uint reserve1 = Market(marketAddress).reserve1();
-        uint reserveC = Market(marketAddress).getReservesTokenC();
+        uint reserveC = Market(marketAddress).reserveC();
+        uint reserveDoN0 = Market(marketAddress).reserveDoN0();
+        uint reserveDoN1 = Market(marketAddress).reserveDoN1();
 
         address tokenC = Market(marketAddress).tokenC();
         address token0 = Market(marketAddress).token0();
         address token1 = Market(marketAddress).token1();
-        assertEq(reserveC, MemeToken(tokenC).balanceOf(marketAddress));
+        assertEq(reserveC+reserveDoN0+reserveDoN1, MemeToken(tokenC).balanceOf(marketAddress));
         assertEq(reserve0, OutcomeToken(token0).balanceOf(marketAddress));
         assertEq(reserve1, OutcomeToken(token1).balanceOf(marketAddress));
+        // emit log_named_uint("yo yo yo", OutcomeToken(token0).balanceOf(marketAddress));
+        // emit log_named_uint("yo yo yo", reserve0);
     } 
 
     function expireMarket() virtual internal {
@@ -236,6 +245,10 @@ contract MarketTestsShared is DSTest {
         (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+sharedOracleConfig.resolutionBufferBlocks));
     }
 
+    function advanceBlocksBy(uint by) virtual internal {
+        (bool success, bytes memory data) = hevm.call(abi.encodeWithSignature("roll(uint256)", block.number+by));
+    } 
+
     function setUp() virtual public {
         commonSetup();
     }
@@ -251,8 +264,8 @@ contract MarketTestsShared is DSTest {
         // // // require(false);
     }
 
-    function test_dadadadad() public {
-        address o1 = address(new OutcomeToken());
-    }
+    // function test_dadadadad() public {
+    //     address o1 = address(new OutcomeToken());
+    // }
 
 }

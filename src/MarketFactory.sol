@@ -9,7 +9,7 @@ import './Market.sol';
 
 contract MarketFactory {
 
-      struct DeployParams {
+    struct DeployParams {
         address creator;
         address oracle;
         bytes32 identifier;

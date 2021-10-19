@@ -32,7 +32,6 @@ contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
     }
 
     function setupOracle(bool _isActive, uint _feeNum, uint _feeDenom, address _tokenC, uint _expireAfterBlocks, uint _donEscalationLimit, uint _donBufferBlocks, uint _resolutionBufferBlocks) external {
-        require(_feeNum <= _feeDenom);
         isActive = _isActive;
         Fee storage _fee = fee;
         _fee.numerator = _feeNum;
