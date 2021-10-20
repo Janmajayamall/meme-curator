@@ -127,7 +127,7 @@ contract Market is IMarket {
         token0 = address(new OutcomeToken()); // significant gas cost
         token1 = address(new OutcomeToken());
 
-        emit MarketCreated(address(this), _creator, _oracle, _identifier, _tokenC);
+        // emit MarketCreated(address(this), _creator, _oracle, _identifier, _tokenC);
     }
 
     function getReservesTokenC() public view override returns (uint reserves){

@@ -57,9 +57,10 @@ EOF
 # (or omit the env vars if you have already set them)
 deploy() {
 	NAME=$1
-	ARGS=${@:2}
+	SUB=$2
+	ARGS=${@:3}
 	# select the filename and the contract in it
-	PATTERN=".contracts[\"src/$NAME.sol\"].$NAME"
+	PATTERN=".contracts[\"src/$SUB$NAME.sol\"].$NAME"
 
 	# get the constructor's signature
 	ABI=$(jq -r "$PATTERN.abi" out/dapp.sol.json)
