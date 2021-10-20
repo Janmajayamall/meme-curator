@@ -46,8 +46,8 @@ contract MemeToken is IERC20 {
         return true;
     }
 
-    function allowance(address owner, address spender) public view virtual override returns (uint256) {
-        return _allowances[owner][spender];
+    function allowance(address _owner, address spender) public view virtual override returns (uint256) {
+        return _allowances[_owner][spender];
     }
 
     function approve(address spender, uint256 amount) public virtual override returns (bool) {

@@ -134,17 +134,6 @@ contract Market is IMarket {
         reserves = reserveC+reserveDoN0+reserveDoN1;
     }
 
-    // function getReservesOTokens() public view override returns (uint _reserve0, uint _reserve1){
-    //     _reserve0 = reserve0;
-    //     _reserve1 = reserve1;
-    // }
-
-    // function getAddressOfTokens() public view override returns (address _tokenC, address _token0, address _token1){
-    //     _tokenC = tokenC;
-    //     _token0 = token0;
-    //     _token1 = token1;
-    // }
-
     function setOutcomeByExpiry() private {           
         // set the outcome as the last staked outcome, if any & close the market
         if (lastOutcomeStaked == 0){
