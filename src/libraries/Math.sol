@@ -20,31 +20,70 @@ library Math {
 
     function getAmountCToBuyTokens(uint a0, uint a1, uint r0, uint r1) internal pure returns (uint a){
         uint b;
-        uint sign;
-        if ((r0 + r1) >= (a0 + a1)){
-            b = (r0 + r1) - (a0 + a1);
-            sign = 1;
-        }else {
-            b = (a0 + a1) - (r0 + r1);
-            sign = 0;
-        }
-        uint b2 = b**2;
-        uint rootVal = b2 + (4 * r0 * a1) + (4 * r1 * a0) - (4 * a0 * a1);
-        rootVal = sqrt(rootVal);
-        if (sign == 0){
-            a = ((b + rootVal) / 2);
-            if (!isValidAmountCRoot(a0, a1, r0, r1, a, true)){
-                require(b >= rootVal, 'ERR rootVal>b sign=0');
-                a = ((b - rootVal)/2);
+        uint rootVal;
+        uint s;
+        assembly {
+            {
+                switch lt(add(r0,r1), add(a0,a1))
+                case 1 {
+                    s := 0
+                    b := sub(add(a0,a1),add(r0,r1))
+                }
+                case 0 {
+                    s := 1
+                    b := sub(add(r0,r1),add(a0,a1))
+                }
             }
-        }else {
-            require(rootVal >= b, 'ERR b>rootVal sign=1');
-            a = ((rootVal - b)/2);
+            rootVal := sub(add(mul(b,b), mul(4, add(mul(r0,a1), mul(r1,a0)))), mul(4, mul(a0,a1)))
         }
-        a += 1;
+        rootVal = sqrt(rootVal);
+        assembly {
+            {
+                switch iszero(s) 
+                case 1 {
+                    a := div(add(b,rootVal), 2)
+                    if or(lt(add(r0,a),a0), lt(add(r1,a),a1)){
+                        if lt(b, rootVal) {revert(0,0)}
+                        a := div(sub(b,rootVal),2)
+                    }
+                }
+                case 0 {
+                    if lt(rootVal,b) {revert(0,0)}
+                    a := div(sub(rootVal,b),2)
+                }
+            }
+            a := add(a,1)
+        }
+
+        // uint b;
+        // uint sign;
+        // if ((r0 + r1) >= (a0 + a1)){
+        //     b = (r0 + r1) - (a0 + a1);
+        //     sign = 1;
+        // }else {
+        //     b = (a0 + a1) - (r0 + r1);
+        //     sign = 0;
+        // }
+        // uint b2 = b**2;
+        // uint rootVal = b2 + (4 * r0 * a1) + (4 * r1 * a0) - (4 * a0 * a1);
+        // rootVal = sqrt(rootVal);
+        // if (sign == 0){
+        //     a = ((b + rootVal) / 2);
+        //     if (!isValidAmountCRoot(a0, a1, r0, r1, a, true)){
+        //         require(b >= rootVal, 'ERR rootVal>b sign=0');
+        //         a = ((b - rootVal)/2);
+        //     }
+        // }else {
+        //     require(rootVal >= b, 'ERR b>rootVal sign=1');
+        //     a = ((rootVal - b)/2);
+        // }
+        // a += 1;
     }
 
     function getTokenAmountToBuyWithAmountC(uint fixedTokenAmount, uint fixedTokenIndex, uint r0, uint r1, uint a) internal pure returns (uint tokenAmount){
+        assembly {
+            
+        }
         require(fixedTokenIndex < 2);
         uint x;
         uint y;
@@ -67,16 +106,31 @@ library Math {
 
 
     function getAmountCBySellTokens(uint a0, uint a1, uint r0, uint r1) internal pure returns (uint a) {
-        uint nveB = r0 + a0 + r1 + a1;
-        uint c = (r0*a1) + (r1*a0) + (a0*a1);
-        uint rootVal = ((nveB**2) - (4 * c));
-        rootVal = sqrt(rootVal);
-        a = (nveB + rootVal)/2;
-        if (!isValidAmountCRoot(a0, a1, r0, r1, a, false)){
-            require(nveB > rootVal, 'ERR');
-            a = (nveB - rootVal)/2;
+        uint nveB;
+        uint rV;
+        assembly {   
+            nveB := add(r0,add(a0, add(r1,a1)))
+            rV := sub(mul(nveB, nveB), mul(4, add(mul(r0,a1), add(mul(r1,a0), mul(a0,a1))))) 
         }
-        a -= 1;
+        rV = sqrt(rV);
+        assembly {
+            a := div(add(nveB, rV), 2)
+            if or(lt(add(r0,a0), a),lt(add(r1,a1), a)) {
+                if lt(nveB, rV) {revert(0,0)}
+                a := div(sub(nveB, rV),2)
+            }
+            a := sub(a,1)
+        }
+        // uint nveB = r0 + a0 + r1 + a1;
+        // uint c = (r0*a1) + (r1*a0) + (a0*a1);
+        // uint rootVal = ((nveB**2) - (4 * c));
+        // rootVal = sqrt(rootVal);
+        // a = (nveB + rootVal)/2;
+        // if (!isValidAmountCRoot(a0, a1, r0, r1, a, false)){
+        //     require(nveB > rootVal, 'ERR');
+        //     a = (nveB - rootVal)/2;
+        // }
+        // a -= 1;
     }
 
     function getTokenAmountToSellForAmountC(uint fixedTokenAmount, uint fixedTokenIndex, uint r0, uint r1, uint a) internal pure returns (uint tokenAmount){
