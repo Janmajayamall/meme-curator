@@ -225,8 +225,8 @@ contract Market is IMarket {
         uint amount1 = balance1 - _reserve1;
 
         // burn outcome tokens
-        IOutcomeToken(token0).revoke(address(this), amount);
-        IOutcomeToken(token1).revoke(address(this), amount);
+        IOutcomeToken(token0).transfer(address(0), amount);
+        IOutcomeToken(token1).transfer(address(0), amount);
 
         uint _reserve0New = (_reserve0 + amount0) - amount;
         uint _reserve1New = (_reserve1 + amount1) - amount;
@@ -245,12 +245,12 @@ contract Market is IMarket {
             address _token0 = token0;
             uint balance = IOutcomeToken(_token0).balanceOf(address(this));
             amount = balance - reserve0;
-            IOutcomeToken(_token0).revoke(address(this), amount);
+            IOutcomeToken(_token0).transfer(address(0), amount);
         }else if (_for == 1){
             address _token1 = token1;
             uint balance = IOutcomeToken(_token1).balanceOf(address(this));
             amount = balance - reserve1;
-            IOutcomeToken(_token1).revoke(address(this), amount);
+            IOutcomeToken(_token1).transfer(address(0), amount);
         }
 
         uint _outcome = outcome;

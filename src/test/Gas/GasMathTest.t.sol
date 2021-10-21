@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "ds-test/test.sol";
 import "./../../libraries/Math.sol";
+import "./../../OutcomeToken.sol";
 
 contract GasMathTest is DSTest {
 
@@ -81,5 +82,10 @@ contract GasMathTest is DSTest {
             1329227995784915872903807060280344574, 
             1329227995784915872903807060280344573
         );
+    }
+
+    function test_creatingOutcomeToken() public {
+        address(new OutcomeToken());
+        address(new OutcomeToken());
     }
 }
