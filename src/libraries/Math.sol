@@ -3,40 +3,17 @@
 pragma solidity ^0.8.0;
 
 library Math {
-    
-    function isValidAmountCRoot(uint a0, uint a1, uint r0, uint r1, uint a, bool buy) internal pure returns (bool){
-        if (buy == true){
-            if((r0 + a) >= a0 && (r1 + a) >= a1){
-                return true;
-            }
-            return false;
-        }else{
-            if((r0 + a0) >= a && (r1 + a1) >= a){
-                return true;
-            }
-            return false;
-        }
-
-        assembly {
-            
-        }
-    }
-
     function getAmountCToBuyTokens(uint a0, uint a1, uint r0, uint r1) internal pure returns (uint a){
         uint b;
         uint rootVal;
         uint s;
         assembly {
-            function safeAdd(_a,_b) -> _v {
-                    _v := add(_a,_b)
-                    if or(lt(_v,_a), lt(_v,_b)) {revert(0,0)}
+            if iszero(and(lt(a0,0x1000000000000000000000000000000),lt(a1,0x1000000000000000000000000000000))) {
+                revert(0,0)
             }
-
-            function safeMul(_a,_b) -> _v {
-                _v := mul(_a,_b)
-                if or(lt(_v,_a), lt(_v,_b)) {revert(0,0)}
+            if iszero(and(lt(r0,0x1000000000000000000000000000000),lt(r1,0x1000000000000000000000000000000))) {
+                revert(0,0)
             }
-
             {
                 let r0Pr1 := add(r0,r1)
                 let a0Pa1 := add(a0,a1)
@@ -50,20 +27,16 @@ library Math {
                     b := sub(r0Pr1,a0Pa1)
                 }
             }
-
-            rootVal := sub(safeAdd(safeMul(b,b), safeMul(4, safeAdd(safeMul(r0,a1), safeMul(r1,a0)))), safeMul(4, safeMul(a0,a1)))
+            let g := mul(b,b)
+            rootVal := sub(add(mul(b,b), mul(4, add(mul(r0,a1), mul(r1,a0)))), mul(4, mul(a0,a1)))
         }
         rootVal = sqrt(rootVal);
         assembly {
-            function safeAdd(_a,_b) -> _v {
-                    _v := add(_a,_b)
-                    if or(lt(_v,_a), lt(_v,_b)) {revert(0,0)}
-            }
             {
                 switch iszero(s) 
                 case 1 {
-                    a := div(safeAdd(b,rootVal), 2)
-                    if or(lt(safeAdd(r0,a),a0), lt(safeAdd(r1,a),a1)){
+                    a := div(add(b,rootVal), 2)
+                    if or(lt(add(r0,a),a0), lt(add(r1,a),a1)){
                         if lt(b, rootVal) {revert(0,0)}
                         a := div(sub(b,rootVal),2)
                     }
@@ -73,7 +46,7 @@ library Math {
                     a := div(sub(rootVal,b),2)
                 }
             }
-            a := safeAdd(a,1)
+            a := add(a,1)
         }
 
         // uint b;
@@ -81,7 +54,8 @@ library Math {
         // if ((r0 + r1) >= (a0 + a1)){
         //     b = (r0 + r1) - (a0 + a1);
         //     sign = 1;
-        // }else {
+        // }
+        // else {
         //     b = (a0 + a1) - (r0 + r1);
         //     sign = 0;
         // }
@@ -103,35 +77,50 @@ library Math {
 
     function getTokenAmountToBuyWithAmountC(uint fixedTokenAmount, uint fixedTokenIndex, uint r0, uint r1, uint a) internal pure returns (uint tokenAmount){
         assembly {
+            if iszero(and(lt(a,0x1000000000000000000000000000000),lt(fixedTokenAmount,0x1000000000000000000000000000000))) {
+                revert(0,0)
+            }
+            if iszero(and(lt(r0,0x1000000000000000000000000000000),lt(r1,0x1000000000000000000000000000000))) {
+                revert(0,0)
+            }
+
             if gt(fixedTokenIndex, 1) {revert(0,0)}
             let x
             let y
             {
-                switch iszero(fixedTokenIndex)
+                switch fixedTokenIndex
+                case 0 {
+                    if iszero(lt(fixedTokenAmount,add(r0,a))) {revert(0,0)}
+                    x := add(r1,a)
+                    y := div(mul(r1,r0),sub(add(r0,a),fixedTokenAmount))
+                }
                 case 1 {
-                    if lt(add(r0,a), fixedTokenAmount) {revert(0,0)}
-         
+                    if iszero(lt(fixedTokenAmount,add(r1,a))) {revert(0,0)}
+                    x := add(r0,a)
+                    y := div(mul(r0,r1),sub(add(r1,a),fixedTokenAmount))
                 }
             }
+            if eq(lt(y,x),0) {revert(0,0)}
+            tokenAmount := sub(sub(x,y),1)
         }
-        require(fixedTokenIndex < 2);
-        uint x;
-        uint y;
-        if(fixedTokenIndex == 0){
-            // find a1
-            x = r1 + a;
-            require(r0 + a >= fixedTokenAmount, "INVALID");
-            y = (r0 * r1)/(r0 + a - fixedTokenAmount);
-        }else{
-            x = r0 + a;
-            require(r1 + a >= fixedTokenAmount, "INVALID");
-            y = (r0 * r1)/(r1 + a - fixedTokenAmount);
-        }
+        // require(fixedTokenIndex < 2);
+        // uint x;
+        // uint y;
+        // if(fixedTokenIndex == 0){
+        //     // find a1
+        //     x = r1 + a;
+        //     require(r0 + a >= fixedTokenAmount, "INVALID");
+        //     y = (r0 * r1)/(r0 + a - fixedTokenAmount);
+        // }else{
+        //     x = r0 + a;
+        //     require(r1 + a >= fixedTokenAmount, "INVALID");
+        //     y = (r0 * r1)/(r1 + a - fixedTokenAmount);
+        // }
 
-        y += 1;
-        require(x > y, "INVALID INPUTS");
-        tokenAmount = x - y;
-        tokenAmount -= 1;
+        // y += 1;
+        // require(x > y, "INVALID INPUTS");
+        // tokenAmount = x - y;
+        // tokenAmount -= 1;
     }
 
 
@@ -139,6 +128,13 @@ library Math {
         uint nveB;
         uint rV;
         assembly {   
+            if iszero(and(lt(a0,0x1000000000000000000000000000000),lt(a1,0x1000000000000000000000000000000))) {
+                revert(0,0)
+            }
+            if iszero(and(lt(r0,0x1000000000000000000000000000000),lt(r1,0x1000000000000000000000000000000))) {
+                revert(0,0)
+            }
+
             nveB := add(r0,add(a0, add(r1,a1)))
             rV := sub(mul(nveB, nveB), mul(4, add(mul(r0,a1), add(mul(r1,a0), mul(a0,a1))))) 
         }
@@ -164,22 +160,50 @@ library Math {
     }
 
     function getTokenAmountToSellForAmountC(uint fixedTokenAmount, uint fixedTokenIndex, uint r0, uint r1, uint a) internal pure returns (uint tokenAmount){
-        require(fixedTokenIndex < 2);
-        uint x;
-        uint y;
-        if(fixedTokenIndex == 0){
-            x = r1;
-            require(r0 + fixedTokenAmount > a, "INVALID");
-            y = ((r0 * r1)/(r0 + fixedTokenAmount - a)) + a;
-        }else{
-            x = r0;
-            require(r1 + fixedTokenAmount > a, "INVALID");
-            y = ((r0 * r1)/(r1 + fixedTokenAmount - a)) + a;
-        }
+        assembly {
+            if iszero(and(lt(a,0x1000000000000000000000000000000),lt(fixedTokenAmount,0x1000000000000000000000000000000))) {
+                revert(0,0)
+            }
+            if iszero(and(lt(r0,0x1000000000000000000000000000000),lt(r1,0x1000000000000000000000000000000))) {
+                revert(0,0)
+            }
 
-        require(y >= x, "INVALID INPUTS");
-        tokenAmount = y - x;
-        tokenAmount += 1;
+            if gt(fixedTokenIndex, 1) {revert(0,0)}
+            let x
+            let y
+            {
+                switch fixedTokenIndex 
+                case 0 {
+                    if iszero(lt(a,add(r0,fixedTokenAmount))) {revert(0,0)}
+                    x := r1
+                    y := div(mul(r0,r1),sub(add(r0,fixedTokenAmount),a))
+                }
+                case 1 {
+                    if iszero(lt(a,add(r1,fixedTokenAmount))) {revert(0,0)}
+                    x := r0
+                    y := div(mul(r0,r1),sub(add(r1,fixedTokenAmount),a))
+                }
+            }
+            y := add(y,a)
+            if gt(x,y) {revert(0,0)}
+            tokenAmount := add(sub(y,x),1)
+        }
+        // require(fixedTokenIndex < 2);
+        // uint x;
+        // uint y;
+        // if(fixedTokenIndex == 0){
+        //     x = r1;
+        //     require(r0 + fixedTokenAmount > a, "INVALID");
+        //     y = ((r0 * r1)/(r0 + fixedTokenAmount - a)) + a;
+        // }else{
+        //     x = r0;
+        //     require(r1 + fixedTokenAmount > a, "INVALID");
+        //     y = ((r0 * r1)/(r1 + fixedTokenAmount - a)) + a;
+        // }
+
+        // require(y >= x, "INVALID INPUTS");
+        // tokenAmount = y - x;
+        // tokenAmount += 1;
     }
 
     function sqrt(uint256 x) internal pure returns (uint256 n) {
@@ -236,56 +260,6 @@ library Math {
                     n := div(x,r)
                 }
             }
-        }
-    }
-
-
-    /// @notice computes square roots using the babylonian method - https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method
-    function sqrt0(uint256 x) internal pure returns (uint256) {
-        // Taken from - https://github.com/Uniswap/solidity-lib/blob/master/contracts/libraries/Babylonian.sol
-
-        if (x == 0) return 0;
-        // this block is equivalent to r = uint256(1) << (BitMath.mostSignificantBit(x) / 2);
-        // however that code costs significantly more gas
-        uint256 xx = x;
-        uint256 r = 1;
-        if (xx >= 0x100000000000000000000000000000000) {
-            xx >>= 128;
-            r <<= 64;
-        }
-        if (xx >= 0x10000000000000000) {
-            xx >>= 64;
-            r <<= 32;
-        }
-        if (xx >= 0x100000000) {
-            xx >>= 32;
-            r <<= 16;
-        }
-        if (xx >= 0x10000) {
-            xx >>= 16;
-            r <<= 8;
-        }
-        if (xx >= 0x100) {
-            xx >>= 8;
-            r <<= 4;
-        }
-        if (xx >= 0x10) {
-            xx >>= 4;
-            r <<= 2;
-        }
-        if (xx >= 0x8) {
-            r <<= 1;
-        }
-        unchecked {
-            r = (r + x / r) >> 1;
-            r = (r + x / r) >> 1;
-            r = (r + x / r) >> 1;
-            r = (r + x / r) >> 1;
-            r = (r + x / r) >> 1;
-            r = (r + x / r) >> 1;
-            r = (r + x / r) >> 1; // Seven iterations should be enough
-            uint256 r1 = x / r;
-            return (r < r1 ? r : r1);
         }
     }
 }
