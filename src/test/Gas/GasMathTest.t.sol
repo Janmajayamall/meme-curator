@@ -9,38 +9,70 @@ contract GasMathTest is DSTest {
     function setUp() public {
 
     }
-    function test_getAmountCToBuyTokens() public {
-        // uint a0 = uint(_a0);
-        // uint a1 = uint(_a1);
-        // uint r0 = uint(_r0);
-        // uint r1 = uint(_r1);
-        // if (r0 == 0 || r1 == 0) return;
-        uint a = Math.getAmountCToBuyTokens(
-            1329227995784915872903807060280344574, 
-            395898540111640672058452071334031554, 
-            963657363776882618085741652757407931, 
-            1329227995784915872903807060280344575
-            );
-        // assertGe((r0*r1), ((r0+a)-a0)*((r1+a)-a1));
+
+    function test_plusN() public {
+        uint a =1329227995784915872903807060280344574;
+        uint b =1329227995784915872903807060280344574;
+        uint c = a+b;
     }
+    function test_plusNOUTUUUUUUU() public {
+        uint a =1329227995784915872903807060280344574;
+        uint b =1329227995784915872903807060280344574;
+        uint c;
+        assembly {
+            // if iszero(0){
+            //     let b := mul(1329227995784915872903807060280344574,1329227995784915872903807060280344574)
+            // }
+            function safeMul(_a,_b) -> _v {
+                    _v := add(_a,_b)
+                    if or(lt(_v,_a), lt(_v,_b)) {revert(0,0)}
+                }
+            c := safeMul(a,b)
+        }
+    }
+
+    // function test_useless() public {
+    //     uint a = (type(uint256).max/2)+2;
+    //     uint b;
+    //     assembly {
+    //         b := mul(a,2)
+    //     }
+    //     emit log_named_uint("dad", b);
+    //     assertEq(uint(0),uint(1));
+    // }
+
+    // function test_getAmountCToBuyTokens() public {
+    //     // uint a0 = uint(_a0);
+    //     // uint a1 = uint(_a1);
+    //     // uint r0 = uint(_r0);
+    //     // uint r1 = uint(_r1);
+    //     // if (r0 == 0 || r1 == 0) return;
+    //     uint a = Math.getAmountCToBuyTokens(
+    //         1329227995784915872903807060280344574, 
+    //         395898540111640672058452071334031554, 
+    //         963657363776882618085741652757407931, 
+    //         1329227995784915872903807060280344575
+    //         );
+    //     // assertGe((r0*r1), ((r0+a)-a0)*((r1+a)-a1));
+    // }
 
     // function test_sqrt() external {
     //     Math.sqrt(type(uint256).max);
     // }
 
-    function test_getAmountCBySellTokens() public {
-        uint a0 = uint(1);
-        uint a1 = uint(1329227995784915872903807060280344575);
-        uint r0 = uint(1329227995784915872903807060280344574);
-        uint r1 = uint(1329227995784915872903807060280344575);
-        if (r0 == 0 || r1 == 0) return;
-        if (a0 == 0 && a1 == 0) return;
-        uint a = Math.getAmountCBySellTokens(a0, a1, r0, r1);
-        // emit log_named_uint("adada", a);
-        // emit log_named_uint("121313", ((r0+a0)-a)*((r1+a1)-a));
-        // emit log_named_uint("18301921", (r0*r1));
-        // assertLe((r0*r1), ((r0+a0)-a)*((r1+a1)-a));
-    }
+    // function test_getAmountCBySellTokens() public {
+    //     uint a0 = uint(1);
+    //     uint a1 = uint(1329227995784915872903807060280344575);
+    //     uint r0 = uint(1329227995784915872903807060280344574);
+    //     uint r1 = uint(1329227995784915872903807060280344575);
+    //     if (r0 == 0 || r1 == 0) return;
+    //     if (a0 == 0 && a1 == 0) return;
+    //     uint a = Math.getAmountCBySellTokens(a0, a1, r0, r1);
+    //     // emit log_named_uint("adada", a);
+    //     // emit log_named_uint("121313", ((r0+a0)-a)*((r1+a1)-a));
+    //     // emit log_named_uint("18301921", (r0*r1));
+    //     // assertLe((r0*r1), ((r0+a0)-a)*((r1+a1)-a));
+    // }
 
     // function test_getTokenAmountToBuyWithAmountC(uint120 _r0, uint120 _r1, uint120 _a) public {
     //     uint a = uint(_a);
