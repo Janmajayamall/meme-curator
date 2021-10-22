@@ -7,6 +7,7 @@ import './interfaces/IOutcomeToken.sol';
 contract OutcomeToken is IOutcomeToken {
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
+
     uint256 private _totalSupply;
     address immutable market;
 
@@ -17,7 +18,7 @@ contract OutcomeToken is IOutcomeToken {
     function balanceOf(address account) public view override returns (uint256) {
         return _balances[account];
     }
-
+    
     function transfer(address recipient, uint256 amount) public override {
         _transfer(msg.sender, recipient, amount);
     }
