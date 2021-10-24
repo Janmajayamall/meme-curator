@@ -3,16 +3,16 @@
 pragma solidity ^0.8.0;
 
 interface IModerationCommitte {
-    struct MarketParams {
-        bool isActive;
+       struct MarketConfig {
         address tokenC;
-        uint[6] details;
+        bool isActive;
+        uint8 feeNumerator;
+        uint8 feeDenominator;
+        uint16 donEscalationLimit;
+        uint32 expireBufferBlocks;
+        uint32 donBufferBlocks;
+        uint32 resolutionBufferBlocks;
     }
 
-    struct Fee {
-        uint numerator;
-        uint denominator;
-    }
-
-    function getMarketParams() external view returns (bool, address, uint[6] memory);
+    function getMarketParams() external view returns (address,bool,uint8,uint8,uint16,uint32,uint32,uint32);
 }

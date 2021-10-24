@@ -7,104 +7,101 @@ import './interfaces/IModerationCommitee.sol';
 
 contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
 
-    Fee public fee;
-    bool public isActive;
-    address public tokenC;
-    uint public expireAfterBlocks;
-    uint public donEscalationLimit;
-    uint public donBufferBlocks;
-    uint public resolutionBufferBlocks;
-
+    MarketConfig marketConfig;
 
     constructor(address[] memory _owners, uint _required, uint maxCount) MultiSigWallet(_owners, _required, maxCount) {}
 
-    function getMarketParams() external view override returns (bool _isActive, address _tokenC, uint[6] memory _details){
-        _isActive = isActive;
-        _tokenC = tokenC;
-        _details = [
-            fee.numerator,
-            fee.denominator,
-            expireAfterBlocks,
-            donBufferBlocks,
-            donEscalationLimit,
-            resolutionBufferBlocks
-        ];
+    function getMarketParams() external view override returns (address,bool,uint8,uint8,uint16,uint32,uint32,uint32){
+        MarketConfig memory _config = marketConfig;
+        return (
+            _config.tokenC,
+            _config.isActive,
+            _config.feeNumerator,
+            _config.feeDenominator,
+            _config.donEscalationLimit,
+            _config.expireBufferBlocks,
+            _config.donBufferBlocks,
+            _config.resolutionBufferBlocks
+        );
     }
 
-    function setupOracle(bool _isActive, uint _feeNum, uint _feeDenom, address _tokenC, uint _expireAfterBlocks, uint _donEscalationLimit, uint _donBufferBlocks, uint _resolutionBufferBlocks) external {
-        isActive = _isActive;
-        Fee storage _fee = fee;
-        _fee.numerator = _feeNum;
-        _fee.denominator = _feeDenom;
-        tokenC = _tokenC;
-        expireAfterBlocks = _expireAfterBlocks;
-        donEscalationLimit = _donEscalationLimit;
-        donBufferBlocks = _donBufferBlocks;
-        resolutionBufferBlocks = _resolutionBufferBlocks;
+    function setupOracle(address _tokenC, bool _isActive, uint8 _feeNumerator, uint8 _feeDenominator,uint16 _donEscalationLimit, uint32 _expireBufferBlocks, uint32 _donBufferBlocks, uint32 _resolutionBufferBlocks) external {
+        MarketConfig memory _config;
+        _config.tokenC = _tokenC;
+        _config.isActive = _isActive;
+        _config.feeNumerator = _feeNumerator;
+        _config.feeDenominator = _feeDenominator;
+        _config.donEscalationLimit = _donEscalationLimit;
+        _config.expireBufferBlocks = _expireBufferBlocks;
+        _config.donBufferBlocks = _donBufferBlocks;
+        _config.resolutionBufferBlocks = _resolutionBufferBlocks;
+        marketConfig = _config;
     }
 
     /* 
         In factory always check whether the oracle is active or not
      */
 
-    function changeFee(uint _feeNum, uint _feeDenom) external onlyWallet {
-        require(_feeNum <= _feeDenom);
-        fee.numerator = _feeNum;
-        fee.denominator = _feeDenom;
+    function changeFee(uint8 _feeNumerator, uint8 _feeDenominator) external onlyWallet {
+        require(_feeNumerator <= _feeDenominator);
+        MarketConfig memory _config = marketConfig;
+        _config.feeNumerator = _feeNumerator;
+        _config.feeDenominator = _feeDenominator;
+        marketConfig = _config;
     }   
 
     function changeActive(bool _isActive) external onlyWallet {
-        isActive = _isActive;
+        marketConfig.isActive = _isActive;
     }
     
     function changeTokenC(address _tokenC) external onlyWallet {
-        tokenC = _tokenC;
+        marketConfig.tokenC = _tokenC;
     }
 
-    function changeActive(uint _expireAfterBlocks) external onlyWallet {
-        expireAfterBlocks = _expireAfterBlocks;
+    function changeActive(uint32 _expireBufferBlocks) external onlyWallet {
+        marketConfig.expireBufferBlocks = _expireBufferBlocks;
     }
 
-    function changeDonEscalationLimit(uint _donEscalationLimit) external onlyWallet {
-        donEscalationLimit = _donEscalationLimit;
+    function changeDonEscalationLimit(uint16 _donEscalationLimit) external onlyWallet {
+        marketConfig.donEscalationLimit = _donEscalationLimit;
     }
 
-    function changeDonBufferBlocks(uint _donBufferBlocks) external onlyWallet {
-        donBufferBlocks = _donBufferBlocks;
+    function changeDonBufferBlocks(uint32 _donBufferBlocks) external onlyWallet {
+        marketConfig.donBufferBlocks = _donBufferBlocks;
     }
 
-    function changeResolutionBufferBlocks(uint _resolutionBufferBlocks) external onlyWallet {
-        resolutionBufferBlocks = _resolutionBufferBlocks;
+    function changeResolutionBufferBlocks(uint32 _resolutionBufferBlocks) external onlyWallet {
+        marketConfig.resolutionBufferBlocks = _resolutionBufferBlocks;
     }
 
     /* 
     Helper functions for adding txs for functions above
      */
-    function addTxSetupOracle(bool _isActive, uint _feeNum, uint _feeDenom, address _tokenC, uint _expireAfterBlocks, uint _donEscalationLimit, uint _donBufferBlocks, uint _resolutionBufferBlocks) external ownerExists(msg.sender)  {
+    function addTxSetupOracle(address _tokenC, bool _isActive, uint8 _feeNumerator, uint8 _feeDenominator,uint16 _donEscalationLimit, uint32 _expireBufferBlocks, uint32 _donBufferBlocks, uint32 _resolutionBufferBlocks) external ownerExists(msg.sender)  {
         bytes memory data = abi.encodeWithSignature(
-            "setupOracle(bool,uint256,uint256,address,uint256,uint256,uint256,uint256)", 
-            _isActive, _feeNum, _feeDenom, _tokenC, _expireAfterBlocks, _donEscalationLimit, _donBufferBlocks, _resolutionBufferBlocks
+            "setupOracle(address,bool,uint8,uint8,uint16,uint32,uint32,uint32)", 
+            _tokenC, _isActive, _feeNumerator, _feeDenominator, _donEscalationLimit, _expireBufferBlocks, _donBufferBlocks, _resolutionBufferBlocks
             );
         submitTransaction(address(this), 0, data);
     }
 
-    function addTxSetMarketOutcome(uint to, address market) external ownerExists(msg.sender){
+    function addTxSetMarketOutcome(uint8 to, address market) external ownerExists(msg.sender){
         require(to < 3);
-        bytes memory data = abi.encodeWithSignature("setOutcome(uint256)", to);
+        bytes memory data = abi.encodeWithSignature("setOutcome(uint8)", to);
         submitTransaction(market, 0, data);
     }
 
-    function addTxChangeDonEscalationLimit(uint _donEscalationLimit) external ownerExists(msg.sender) {
+    function addTxChangeDonEscalationLimit(uint16 _donEscalationLimit) external ownerExists(msg.sender) {
         bytes memory data = abi.encodeWithSignature(
-            "changeDonEscalationLimit(uint256)", 
+            "changeDonEscalationLimit(uint16)", 
             _donEscalationLimit
             );
         submitTransaction(address(this), 0, data);
     }
 
-    function addTxChangeDoNBufferBlocks(uint _donBufferBlocks) external ownerExists(msg.sender) {
+    function addTxChangeDoNBufferBlocks(uint32 _donBufferBlocks) external ownerExists(msg.sender) {
         bytes memory data = abi.encodeWithSignature(
-            "changeDonBufferBlocks(uint256)", 
+            "changeDonBufferBlocks(uint32)", 
             _donBufferBlocks
             );
         submitTransaction(address(this), 0, data);

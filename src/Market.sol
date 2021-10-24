@@ -48,9 +48,10 @@ contract Market {
     uint256 private reserveC;
     uint256 private reserveDoN0;
     uint256 private reserveDoN1;
+
     address private token0;
-    address private token1;
-    address private tokenC;
+    address  private token1;
+    address immutable private tokenC;
 
     bytes32 immutable identifier;
     address immutable creator;
@@ -120,25 +121,19 @@ contract Market {
     // }
 
     constructor(){
-        (address _creator, address _oracle, bytes32 _identifier) = IMarketFactory(msg.sender).deployParams();
-        (bool _isActive, address _tokenC, uint[6] memory details) = IModerationCommitte(_oracle).getMarketParams();
-        require(_isActive == true);
-        require(details[0] <= details[1]);
+        address _oracle;
+        (creator, _oracle, identifier) = IMarketFactory(msg.sender).deployParams();
 
-        // oracleFeeNumerator = details[0];
-        // oracleFeeDenominator = details[1];
-        // expireBufferBlocks = details[2];
-        // donBufferBlocks = details[3];
-        // donEscalationLimit = details[4];
-        // resolutionBufferBlocks = details[5];
-        creator = _creator;
+        // retrieve market configurtion from oracle
+        MarketDetails memory _details;
+        bool isActive;
+        (tokenC, isActive, _details.oracleFeeDenominator, _details.oracleFeeDenominator, _details.donEscalationLimit, _details.expireBufferBlocks, _details.donBufferBlocks, _details.resolutionBufferBlocks) = IModerationCommitte(_oracle).getMarketParams();
+        require(isActive == true);
+        require(_details.oracleFeeNumerator <= _details.oracleFeeDenominator);
+        marketDetails = _details;
         oracle = _oracle;
-        identifier = _identifier;
-        tokenC = _tokenC;
-        // token0 = address(new OutcomeToken()); // significant gas cost
-        // token1 = address(new OutcomeToken());
-
-        // emit MarketCreated(address(this), _creator, _oracle, _identifier, _tokenC);
+        token0 = address(new OutcomeToken()); // significant gas cost
+        token1 = address(new OutcomeToken());
     }
 
     // getMarketDetails
@@ -448,3 +443,10 @@ contract Market {
         reserve1 = 0;
     }
 }
+
+
+/* 
+1. Reduce market contract size
+2. Adjust the rest according to new market.sol
+3. Test gas cost of functions
+4. writr sub grahs */

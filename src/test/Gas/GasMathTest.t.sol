@@ -9,33 +9,53 @@ import "./../../Market.sol";
 contract GasMathTest is DSTest {
 
     struct OracleConfig {
-        bool isActive;
-        uint feeNum;
-        uint feeDenom;
         address tokenC;
-        uint expireAfterBlocks;
-        uint donEscalationLimit;
-        uint donBufferBlocks;
-        uint resolutionBufferBlocks;
+        bool isActive;
+        uint8 feeNumerator;
+        uint8 feeDenominator;
+        uint16 donEscalationLimit;
+        uint32 expireBufferBlocks;
+        uint32 donBufferBlocks;
+        uint32 resolutionBufferBlocks;
+    }
+
+    struct DeployParams {
+        address creator;
+        address oracle;
+        bytes32 identifier;
     }
     address oracle;
+    DeployParams public deployParams;
 
 
     function setUp() public {
         address[] memory oracleOwners = new address[](1);
         oracleOwners[0] = address(this);
         oracle = address(new OracleMultiSig(oracleOwners, 1, 10));
-        OracleConfig memory sharedOracleConfig = OracleConfig(true, 10, 100, address(this), 10, 5, 10, 10);
+        OracleConfig memory sharedOracleConfig = OracleConfig(
+            address(this),
+            true, 
+            10, 
+            100, 
+            5, 
+            10, 
+            10, 
+            10);
         OracleMultiSig(oracle).addTxSetupOracle(
-            sharedOracleConfig.isActive,
-            sharedOracleConfig.feeNum,
-            sharedOracleConfig.feeDenom,
             sharedOracleConfig.tokenC,
-            sharedOracleConfig.expireAfterBlocks,
+            sharedOracleConfig.isActive,
+            sharedOracleConfig.feeNumerator,
+            sharedOracleConfig.feeDenominator,
             sharedOracleConfig.donEscalationLimit,
+            sharedOracleConfig.expireBufferBlocks,
             sharedOracleConfig.donBufferBlocks,
             sharedOracleConfig.resolutionBufferBlocks
         );   
+        deployParams = DeployParams({
+            creator:address(this),
+            oracle:oracle,
+            identifier:0x0401030400040101040403020201030003000000010202020104010201000103
+        });
     }
 
     // function test_plusN() public {
@@ -117,14 +137,8 @@ contract GasMathTest is DSTest {
     }
 
 
-    struct DeployParams {
-        address creator;
-        address oracle;
-        bytes32 identifier;
-    }
-    DeployParams public deployParams;
+ 
     function test_market() public {
-        deployParams = DeployParams({creator: address(this), oracle: oracle, identifier:0x0401030400040101040403020201030003000000010202020104010201000103});
         address marketAddress = address(new Market());
     }
 }
