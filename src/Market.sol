@@ -180,6 +180,58 @@ contract Market {
         return (true, _details.outcome);
     }
 
+    // get token addresses
+    function getTokenAddresses() external view returns (address,address,address){
+        return (tokenC, token0, token1);
+    }
+
+    function getOutcomeReserves() external view returns (uint,uint){
+        return (reserve0, reserve1);
+    }
+
+    // get market details
+    function getMarketDetails() external view returns (
+        uint32,
+        uint32,
+        uint32,
+        uint32,
+        uint32,
+        uint32,
+        uint16,
+        uint16,
+        uint8,
+        uint8,
+        uint8,
+        uint8
+    ) {
+        MarketDetails memory _details = marketDetails;
+        return (
+            _details.expireAtBlock,
+            _details.donBufferEndsAtBlock,
+            _details.resolutionEndsAtBlock,
+            _details.expireBufferBlocks,
+            _details.donBufferBlocks,
+            _details.resolutionBufferBlocks,
+            _details.donEscalationCount,
+            _details.donEscalationLimit,
+            _details.oracleFeeNumerator,
+            _details.oracleFeeDenominator,
+            _details.outcome,
+            _details.stage
+        );
+    }
+
+    // get staking info
+    function getStaking() external view returns(uint,address,address,uint8){
+        Staking memory _staking = staking;
+        return (
+            _staking.lastAmountStaked,
+            _staking.staker0,
+            _staking.staker1,
+            _staking.lastOutcomeStaked
+        );
+    }
+
     // function setOutcomeByExpiry() internal {           
     //     // set the outcome as the last staked outcome, if any & close the market
     //     if (lastOutcomeStaked == 0){
@@ -224,7 +276,7 @@ contract Market {
         // donBufferEndsAtBlock = block.number + _expireBufferBlocks + donBufferBlocks; // pre-set buffer period expiry
         // resolutionEndsAtBlock = block.number + _expireBufferBlocks + resolutionBufferBlocks; // pre-set resolution expiry, incase donEscalationLimit == 0
         
-        require(amount > 0, 'AMOUNT 0');
+        require(amount > 0, 'ZERO');
     }
     
     function buy(uint amount0, uint amount1, address to) external {
@@ -255,8 +307,13 @@ contract Market {
         reserve1 = _reserve1New;
         reserveC += amount;
 
-        // emit OutcomeBought(address(this), to, amount, amount0, amount1, _reserve0New, _reserve1New);
+        emit OutcomeTraded(address(this), to);
     }   
+    event OutcomeTraded(address indexed market, address indexed by);
+    event OutcomeStaked(address indexed market, address indexed by);
+    event OutcomeSet(address indexed market);
+    event WinningRedeemed(address indexed market, address indexed by);
+    event StakedRedeemed(address indexed market, address indexed by);
 
     function sell(uint amount, address to) external {
         require(isMarketFunded());
@@ -284,7 +341,7 @@ contract Market {
         reserve1 = _reserve1New;
         reserveC -= amount;
 
-        // emit OutcomeSold(address(this), to, amount0, amount1, amount, _reserve0New, _reserve1New);
+        emit OutcomeTraded(address(this), to);
     }
 
     function redeemWinning(uint _for, address to) external {
@@ -315,12 +372,10 @@ contract Market {
 
         require(_for < 2);
 
-        // emit WinningRedeemed(address(this), to, _for, amount, _outcome);
+        emit WinningRedeemed(address(this), to);
     }
 
     function stakeOutcome(uint _for, address to) external {
-        require(_for < 2);
-
         MarketDetails memory _details = marketDetails;
         if (_details.stage == uint8(Stages.MarketFunded) && block.number >= _details.expireAtBlock){
             _details.stage = uint8(Stages.MarketBuffer);
@@ -330,6 +385,8 @@ contract Market {
             && _details.donEscalationCount < _details.donEscalationLimit
             && block.number < _details.donBufferEndsAtBlock
         );
+
+        require(_for < 2);
 
         uint reserveTokenC = totalReservesTokenC();
         uint balance = IERC20(tokenC).balanceOf(address(this));
@@ -362,6 +419,8 @@ contract Market {
         }
         _details.donEscalationCount += 1;
         marketDetails = _details;
+
+        emit OutcomeStaked(address(this), to);
     }
 
     function redeemStake(uint _for) external {
@@ -403,6 +462,8 @@ contract Market {
 
         reserveDoN0 = _reserveDoN0;
         reserveDoN1 = _reserveDoN1;
+
+        emit StakedRedeemed(address(this), msg.sender);
     }
 
     function setOutcome(uint8 outcome) external {
@@ -442,6 +503,8 @@ contract Market {
         marketDetails = _details;
 
         require(msg.sender == _oracle);
+
+        emit OutcomeSet(address(this));
     }
 
     function claimReserve() external { 
