@@ -4,7 +4,14 @@ pragma solidity ^0.8.0;
 
 interface IMarket {
 
-    enum Stages {
+    struct Staking {
+        uint256 lastAmountStaked;
+        address staker0;
+        address staker1;
+        uint8 lastOutcomeStaked;
+    }
+
+   enum Stages {
         MarketCreated,
         MarketFunded,
         MarketBuffer,
@@ -12,24 +19,40 @@ interface IMarket {
         MarketClosed
     }
 
-    struct Staking {
-        uint amount0;
-        uint amount1;
-        address staker0;
-        address staker1;
+    struct MarketDetails {
+        uint32 expireAtBlock;
+        uint32 donBufferEndsAtBlock;
+        uint32 resolutionEndsAtBlock;
+        uint32 expireBufferBlocks;
+        uint32 donBufferBlocks; 
+        uint32 resolutionBufferBlocks;
+
+        uint16 donEscalationCount;
+        uint16 donEscalationLimit;
+
+        uint8 oracleFeeNumerator;
+        uint8 oracleFeeDenominator;
+        uint8 outcome;
+        uint8 stage;
     }
 
-    function getReservesTokenC() external view returns (uint);
-    function tokenC() external view returns (address);
-    function token0() external view returns (address);
-    function token1() external view returns (address);
-    function reserveC() external view returns (uint);
-    function reserve0() external view returns (uint);
-    function reserve1() external view returns (uint);
-    function staking() external view returns (uint,uint,address,address);
-    function stakes(uint, address) external view returns (uint);
-    function outcome() external view returns (uint);
-    function stage() external view returns (Stages);
+    function getTokenAddresses() external view returns (address,address,address);
+    function getOutcomeReserves() external view returns (uint,uint);
+    function getMarketDetails() external view returns (
+        uint32,
+        uint32,
+        uint32,
+        uint32,
+        uint32,
+        uint32,
+        uint16,
+        uint16,
+        uint8,
+        uint8,
+        uint8,
+        uint8
+    );
+    function getStaking() external view returns(uint,address,address,uint8);
 
     function fund() external;
     function buy(uint amount0, uint amount1, address to) external;   
@@ -37,30 +60,12 @@ interface IMarket {
     function redeemWinning(uint _for, address to) external;
     function stakeOutcome(uint _for, address to) external;
     function redeemStake(uint _for) external;
-    function setOutcome(uint _outcome) external;
+    function setOutcome(uint8 _outcome) external;
+    function claimReserve() external;
 
-    event MarketCreated(
-        address indexed market, 
-        address indexed creator, 
-        address indexed oracle, 
-        bytes32 identifier,
-        address tokenC
-    );
-    event MarketFunded(
-        address indexed market, 
-        uint reserve0, 
-        uint reserve1, 
-        uint reserveC,
-        uint expireAtBlock,
-        uint donBufferEndsAtBlock,
-        uint donEscalationLimit,
-        uint resolutionEndsAtBlock
-    );
-    event OutcomeBought(address indexed market, address indexed by, uint amountCIn, uint amount0Out, uint amount1Out, uint reserve0, uint reserve1);
-    event OutcomeSold(address indexed market, address indexed by, uint amount0In, uint amount1In, uint amountCOut, uint reserve0, uint reserve1);
-    event WinningRedeemed(address indexed market, address indexed by, uint _for, uint amountTIn, uint outcome);
-    event OutcomeStaked(address indexed market, address indexed by, uint _for, uint amountCIn);
-    event StakeRedeemed(address indexed market, address indexed by, uint _for, uint amountCOut);
-    event OracleSetOutcome(address indexed market, uint outcome);
-    event EscalationLimitReached(address indexed market, uint resolutionEndsAtBlock);
+    event OutcomeTraded(address indexed market, address indexed by);
+    event OutcomeStaked(address indexed market, address indexed by);
+    event OutcomeSet(address indexed market);
+    event WinningRedeemed(address indexed market, address indexed by);
+    event StakedRedeemed(address indexed market, address indexed by);
 }

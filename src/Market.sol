@@ -9,45 +9,11 @@ import './interfaces/IModerationCommitee.sol';
 import './interfaces/IOutcomeToken.sol';
 import './interfaces/IERC20.sol';
 
-contract Market {
-
-    struct Staking {
-        uint256 lastAmountStaked;
-        address staker0;
-        address staker1;
-        uint8 lastOutcomeStaked;
-    }
-
-   enum Stages {
-        MarketCreated,
-        MarketFunded,
-        MarketBuffer,
-        MarketResolve,
-        MarketClosed
-    }
-
-    struct MarketDetails {
-        uint32 expireAtBlock;
-        uint32 donBufferEndsAtBlock;
-        uint32 resolutionEndsAtBlock;
-        uint32 expireBufferBlocks;
-        uint32 donBufferBlocks; 
-        uint32 resolutionBufferBlocks;
-
-        uint16 donEscalationCount;
-        uint16 donEscalationLimit;
-
-        uint8 oracleFeeNumerator;
-        uint8 oracleFeeDenominator;
-        uint8 outcome;
-        uint8 stage;
-    }
-
+contract Market is IMarket {
     uint256 private reserve0;
     uint256 private reserve1;
     uint256 private reserveC;
     
-
     address immutable private token0;
     address immutable private token1;
     address immutable private tokenC;
@@ -181,16 +147,20 @@ contract Market {
     }
 
     // get token addresses
-    function getTokenAddresses() external view returns (address,address,address){
+    function getTokenAddresses() external override view returns (address,address,address){
         return (tokenC, token0, token1);
     }
 
-    function getOutcomeReserves() external view returns (uint,uint){
+    function getOutcomeReserves() external override view returns (uint,uint){
         return (reserve0, reserve1);
     }
 
+    function getTokenCReserves() external override view returns (uint,uint,uint){
+        return (reserveC, reserveDoN0, reserveDoN1);
+    }
+
     // get market details
-    function getMarketDetails() external view returns (
+    function getMarketDetails() external override view returns (
         uint32,
         uint32,
         uint32,
@@ -222,7 +192,7 @@ contract Market {
     }
 
     // get staking info
-    function getStaking() external view returns(uint,address,address,uint8){
+    function getStaking() external override view returns(uint,address,address,uint8){
         Staking memory _staking = staking;
         return (
             _staking.lastAmountStaked,
@@ -251,7 +221,7 @@ contract Market {
     //     }
     // }
 
-    function fund() external {
+    function fund() external override {
         MarketDetails memory _details = marketDetails;
         require(_details.stage == uint8(Stages.MarketCreated));
 
@@ -279,7 +249,7 @@ contract Market {
         require(amount > 0, 'ZERO');
     }
     
-    function buy(uint amount0, uint amount1, address to) external {
+    function buy(uint amount0, uint amount1, address to) external override {
         require(isMarketFunded());
 
         address _token0 = token0;
@@ -309,13 +279,8 @@ contract Market {
 
         emit OutcomeTraded(address(this), to);
     }   
-    event OutcomeTraded(address indexed market, address indexed by);
-    event OutcomeStaked(address indexed market, address indexed by);
-    event OutcomeSet(address indexed market);
-    event WinningRedeemed(address indexed market, address indexed by);
-    event StakedRedeemed(address indexed market, address indexed by);
 
-    function sell(uint amount, address to) external {
+    function sell(uint amount, address to) external override {
         require(isMarketFunded());
 
         address _tokenC = tokenC;
@@ -344,7 +309,7 @@ contract Market {
         emit OutcomeTraded(address(this), to);
     }
 
-    function redeemWinning(uint _for, address to) external {
+    function redeemWinning(uint _for, address to) external override {
         (bool valid, uint8 outcome) = isMarketClosed();
         require(valid);
 
@@ -375,7 +340,7 @@ contract Market {
         emit WinningRedeemed(address(this), to);
     }
 
-    function stakeOutcome(uint _for, address to) external {
+    function stakeOutcome(uint _for, address to) external override {
         MarketDetails memory _details = marketDetails;
         if (_details.stage == uint8(Stages.MarketFunded) && block.number >= _details.expireAtBlock){
             _details.stage = uint8(Stages.MarketBuffer);
@@ -407,6 +372,7 @@ contract Market {
             _staking.lastOutcomeStaked = 1;
         } 
 
+        require(amount != 0, "ZERO");
         require(amount >= (_staking.lastAmountStaked * 2), "DBL");
         _staking.lastAmountStaked = amount;
         staking = _staking;
@@ -423,7 +389,7 @@ contract Market {
         emit OutcomeStaked(address(this), to);
     }
 
-    function redeemStake(uint _for) external {
+    function redeemStake(uint _for) external override {
         require(_for < 2);
 
         (bool valid, uint8 outcome) = isMarketClosed();
@@ -466,7 +432,7 @@ contract Market {
         emit StakedRedeemed(address(this), msg.sender);
     }
 
-    function setOutcome(uint8 outcome) external {
+    function setOutcome(uint8 outcome) external override {
         require(outcome < 3);
 
         MarketDetails memory _details = marketDetails;
@@ -507,7 +473,7 @@ contract Market {
         emit OutcomeSet(address(this));
     }
 
-    function claimReserve() external { 
+    function claimReserve() external override { 
         (bool valid,) = isMarketClosed();
         require(valid);
         address _creator = creator;
