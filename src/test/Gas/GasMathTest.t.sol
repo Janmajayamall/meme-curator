@@ -147,6 +147,11 @@ contract GasMathTest is DSTest {
     }
 
     function test_keccack() public {
-        bytes32 dad = keccak256(1290);
+        // bytes32 dad = keccak256(abi.encode(address(this), uint(12)));
+        bytes32 dad1 = keccak256(abi.encodePacked(address(this), uint8(12)));
+        // emit log_named_bytes("encode", dad);
+        // emit log_named_bytes("encodePacked", dad1);
+        // // log_named_bytes("encode", dad);
+        // assertTrue(false);
     }
 }
