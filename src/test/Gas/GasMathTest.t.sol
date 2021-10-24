@@ -141,4 +141,12 @@ contract GasMathTest is DSTest {
     function test_market() public {
         address marketAddress = address(new Market());
     }
+
+    function test_empty() public {
+
+    }
+
+    function test_keccack() public {
+        bytes32 dad = keccak256(1290);
+    }
 }

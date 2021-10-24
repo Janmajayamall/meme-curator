@@ -49,8 +49,8 @@ contract Market {
     uint256 private reserveDoN0;
     uint256 private reserveDoN1;
 
-    address private token0;
-    address  private token1;
+    address immutable private token0;
+    address immutable private token1;
     address immutable private tokenC;
 
     bytes32 immutable identifier;
@@ -146,15 +146,15 @@ contract Market {
 
     function isMarketFunded() internal view returns (bool) {
         MarketDetails memory _details = marketDetails;
-        if (_details.stage == 1 && block.number < _details.expireAtBlock) return true;
+        if (_details.stage == uint8(Stages.MarketFunded) && block.number < _details.expireAtBlock) return true;
         return false;
     }
 
     function isMarketClosed(MarketDetails memory _details) internal view returns (bool, uint8){
-        if (_details.stage != 4 && _details.stage != 1){
+        if (_details.stage != uint8(Stages.MarketClosed) && _details.stage != uint8(Stages.MarketCreated)){
             if(
-                (_details.stage != 3 && block.number >= _details.donBufferEndsAtBlock && (_details.donBufferBlocks == 0 || _details.donEscalationLimit == 0))
-                || (block.number >=  _details.resolutionEndsAtBlock && (_details.stage == 3 || _details.donEscalationLimit == 0))
+                (_details.stage != uint8(Stages.MarketResolve) && block.number >= _details.donBufferEndsAtBlock && (_details.donBufferBlocks == 0 || _details.donEscalationLimit == 0))
+                || (block.number >=  _details.resolutionEndsAtBlock && (_details.stage == uint8(Stages.MarketResolve) || _details.donEscalationLimit == 0))
                 )
             {
                 // Set outcome by expiry   
@@ -186,7 +186,7 @@ contract Market {
 
     function fund() external {
         MarketDetails memory _details = marketDetails;
-        require(_details.stage == 0);
+        require(_details.stage == uint8(Stages.MarketCreated));
 
         uint amount = IERC20(tokenC).balanceOf(address(this)); // tokenC reserve is 0 at this point
         
@@ -197,7 +197,7 @@ contract Market {
         reserve1 += amount;
         reserveC += amount;
 
-        _details.stage = 1;
+        _details.stage = uint8(Stages.MarketFunded);
         _details.expireAtBlock = uint32(block.number) + _details.expireBufferBlocks;
         _details.donBufferEndsAtBlock = _details.expireAtBlock + _details.donBufferBlocks; // pre-set buffer expiry for first buffer period
         _details.resolutionEndsAtBlock = uint32(block.number) + _details.resolutionBufferBlocks; // pre-set resolution expiry, in case donEscalationLimit == 0 && donBufferBlocks > 0
@@ -307,7 +307,7 @@ contract Market {
     function stakeOutcome(uint _for, address to) external {
 
         MarketDetails memory _details = marketDetails;
-        if (_details.stage != 2){
+        if (_details.stage != uint8(Stages.MarketBuffer)){
             // checks valid conditions for MarketBuffer, if stage != MarketBuffer
             require(block.number >= _details.expireAtBlock && block.number < _details.donBufferEndsAtBlock);        
         }
@@ -395,7 +395,7 @@ contract Market {
 
     function setOutcome(uint8 outcome) external {
         MarketDetails memory _details = marketDetails;
-        if (_details.stage != 3 && _details.stage != 0){
+        if (_details.stage != uint8(Stages.MarketResolve) && _details.stage != uint8(Stages.MarketCreated)){
             // if Market expires and don escalation limit == zero, Market transitions to MarketResolve (skipping MarketBuffer)
             // if donEscalationLimit == 0 && donBufferBlocks == 0 then Market transitions to MarketClosed aftr expiry (skipping Market Resolve & Market Buffer)
             require(block.number >= _details.expireAtBlock && _details.donEscalationLimit == 0 && _details.donBufferBlocks  != 0);            
@@ -450,3 +450,7 @@ contract Market {
 2. Adjust the rest according to new market.sol
 3. Test gas cost of functions
 4. writr sub grahs */
+
+
+/* 
+1. */
