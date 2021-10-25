@@ -12,7 +12,7 @@ import './../OutcomeToken.sol';
 import './../Market.sol';
 import './Shared.t.sol';
 
-contract MarketTestsShared is DSTest, Shared {
+contract MarketTestShared is DSTest, Shared {
 
     function redeemStake(uint _for, uint outcome, uint stakeAmount, uint expectedWinning) internal {
         uint tokenCBalanceBefore = MemeToken(memeToken).balanceOf(address(this));

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "ds-test/test.sol";
-import "./MarketTestsShared.t.sol";
+import "./MarketTestShared.t.sol";
 import './../libraries/Math.sol';
 import './../OracleMultiSig.sol';
 import './../MemeToken.sol';
@@ -11,7 +11,7 @@ import './../MarketRouter.sol';
 import './../libraries/Math.sol';
 import './../OutcomeToken.sol';
 
-contract MarketBufferTest is MarketTestsShared {
+contract MarketTestStageBuffer is MarketTestShared {
     function setUp() override public {
         commonSetup();
         createDefaultMarket();

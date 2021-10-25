@@ -9,9 +9,9 @@ import './../MarketFactory.sol';
 import './../MarketRouter.sol';
 import './../libraries/Math.sol';
 import './../OutcomeToken.sol';
-import "./MarketTestsShared.t.sol";
+import "./MarketTestShared.t.sol";
 
-contract MarketResolveTest is MarketTestsShared {
+contract MarketTestStageResolve is MarketTestShared {
 
     function setUp() override public {
         commonSetup();

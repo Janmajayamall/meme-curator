@@ -45,7 +45,6 @@ contract MarketRouter {
 
     /// @notice Buy exact amountOfToken0 & amountOfToken1 with collteral tokens <= amountInCMax
     function buyExactTokensForMaxCTokens(uint amountOutToken0, uint amountOutToken1, uint amountInCMax, address market) external {
-
         (uint reserve0, uint reserve1) = IMarket(market).getOutcomeReserves();
         uint amountIn = Math.getAmountCToBuyTokens(amountOutToken0, amountOutToken1, reserve0, reserve1);
         require(amountInCMax >= amountIn, "TRADE: INVALID");
