@@ -7,7 +7,7 @@ import './interfaces/IModerationCommitee.sol';
 
 contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
 
-    MarketConfig marketConfig;
+    MarketConfig public marketConfig;
 
     constructor(address[] memory _owners, uint _required, uint maxCount) MultiSigWallet(_owners, _required, maxCount) {}
 

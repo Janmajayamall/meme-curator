@@ -10,13 +10,13 @@ import './interfaces/IOutcomeToken.sol';
 import './interfaces/IERC20.sol';
 
 contract Market is IMarket {
-    uint256 private reserve0;
-    uint256 private reserve1;
-    uint256 private reserveC;
+    uint256 public reserve0;
+    uint256 public reserve1;
+    uint256 public reserveC;
     
-    address immutable private token0;
-    address immutable private token1;
-    address immutable private tokenC;
+    address immutable token0;
+    address immutable token1;
+    address immutable tokenC;
 
     bytes32 immutable identifier;
     address immutable creator;
@@ -95,9 +95,10 @@ contract Market is IMarket {
         // retrieve market configurtion from oracle
         MarketDetails memory _details;
         bool isActive;
-        (tokenC, isActive, _details.oracleFeeDenominator, _details.oracleFeeDenominator, _details.donEscalationLimit, _details.expireBufferBlocks, _details.donBufferBlocks, _details.resolutionBufferBlocks) = IModerationCommitte(_oracle).getMarketParams();
+        (tokenC, isActive, _details.oracleFeeNumerator, _details.oracleFeeDenominator, _details.donEscalationLimit, _details.expireBufferBlocks, _details.donBufferBlocks, _details.resolutionBufferBlocks) = IModerationCommitte(_oracle).getMarketParams();
         require(isActive == true);
         require(_details.oracleFeeNumerator <= _details.oracleFeeDenominator);
+        _details.outcome = 2;
         marketDetails = _details;
         oracle = _oracle;
         token0 = address(new OutcomeToken()); // significant gas cost
@@ -161,34 +162,21 @@ contract Market is IMarket {
 
     // get market details
     function getMarketDetails() external override view returns (
-        uint32,
-        uint32,
-        uint32,
-        uint32,
-        uint32,
-        uint32,
-        uint16,
-        uint16,
-        uint8,
-        uint8,
-        uint8,
-        uint8
+        uint[12] memory detailsArr
     ) {
         MarketDetails memory _details = marketDetails;
-        return (
-            _details.expireAtBlock,
-            _details.donBufferEndsAtBlock,
-            _details.resolutionEndsAtBlock,
-            _details.expireBufferBlocks,
-            _details.donBufferBlocks,
-            _details.resolutionBufferBlocks,
-            _details.donEscalationCount,
-            _details.donEscalationLimit,
-            _details.oracleFeeNumerator,
-            _details.oracleFeeDenominator,
-            _details.outcome,
-            _details.stage
-        );
+        detailsArr[0] = _details.expireAtBlock;
+        detailsArr[1] = _details.donBufferEndsAtBlock;
+        detailsArr[2] = _details.resolutionEndsAtBlock;
+        detailsArr[3] = _details.expireBufferBlocks;
+        detailsArr[4] = _details.donBufferBlocks;
+        detailsArr[5] = _details.resolutionBufferBlocks;
+        detailsArr[6] = _details.donEscalationCount;
+        detailsArr[7] = _details.donEscalationLimit;
+        detailsArr[8] = _details.oracleFeeNumerator;
+        detailsArr[9] = _details.oracleFeeDenominator;
+        detailsArr[10] = _details.outcome;
+        detailsArr[11] = _details.stage;
     }
 
     // get staking info
@@ -200,6 +188,11 @@ contract Market is IMarket {
             _staking.staker1,
             _staking.lastOutcomeStaked
         );
+    }
+
+    // get stake
+    function getStake(uint _for, address _of) external override view returns(uint){
+        return stakes[keccak256(abi.encode(_of, _for))];
     }
 
     // function setOutcomeByExpiry() internal {           
@@ -237,7 +230,7 @@ contract Market is IMarket {
         _details.stage = uint8(Stages.MarketFunded);
         _details.expireAtBlock = uint32(block.number) + _details.expireBufferBlocks;
         _details.donBufferEndsAtBlock = _details.expireAtBlock + _details.donBufferBlocks; // pre-set buffer expiry for first buffer period
-        _details.resolutionEndsAtBlock = uint32(block.number) + _details.resolutionBufferBlocks; // pre-set resolution expiry, in case donEscalationLimit == 0 && donBufferBlocks > 0
+        _details.resolutionEndsAtBlock = _details.expireAtBlock + _details.resolutionBufferBlocks; // pre-set resolution expiry, in case donEscalationLimit == 0 && donBufferBlocks > 0
         marketDetails = _details;
         
         // stage = Stages.MarketFunded;
@@ -398,7 +391,7 @@ contract Market is IMarket {
         uint _reserveDoN0 = reserveDoN0;
         uint _reserveDoN1 = reserveDoN1;
 
-        bytes32 key = keccak256(abi.encode(address(this), _for));
+        bytes32 key = keccak256(abi.encode(msg.sender, _for));
         uint amount = stakes[key];
         stakes[key] = 0;
 

@@ -11,7 +11,7 @@ import './../OutcomeToken.sol';
 import './../Market.sol';
 
 contract Shared {
-
+ 
      struct OracleConfig {
         address tokenC;
         bool isActive;
@@ -126,9 +126,18 @@ contract Shared {
         tokenAmount = Math.getTokenAmountToSellForAmountC(fixedTokenAmount, fixedTokenIndex, r0, r1, a);
     }
 
-    function getMarketStage(address _marketAddress) internal returns (uint8) {
-        (,,,,,,,,,,,uint8 stage) = Market(_marketAddress).getMarketDetails();
-        return stage;
+    function getMarketStage(address _marketAddress) internal view returns (uint8 stage) {
+        uint[12] memory details = Market(_marketAddress).getMarketDetails();
+        return uint8(details[11]);
+    }
+
+    function getMarketOutcome(address _marketAddress) internal view returns (uint8 outcome) {
+        uint[12] memory details = Market(_marketAddress).getMarketDetails();
+        return uint8(details[10]);
+    }
+
+    function getStakeAmount(address _marketAddress, uint _for, address _of) internal returns (uint){
+        return Market(marketAddress).getStake(_for, _of);
     }
 
     function getTokenBalances(address _of) internal returns (uint balanceC, uint balance0, uint balance1) {

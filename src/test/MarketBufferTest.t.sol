@@ -30,10 +30,11 @@ contract MarketBufferTest is MarketTestsShared {
         simStakingRoundsBeforeEscalationLimit(sharedOracleConfig.donEscalationLimit);
         uint marketBalanceAfter = MemeToken(memeToken).balanceOf(marketAddress);
         assertEq(marketBalanceAfter, marketBalanceBefore+simStakingInfo.stakeAmounts[0]+simStakingInfo.stakeAmounts[1]); // balance increased by expected staked amount in simulation
-        assertEq(simStakingInfo.stakeAmounts[0], Market(marketAddress).stakes(0, address(this))); // expected amount staked for outcome matches amount staked
-        assertEq(simStakingInfo.stakeAmounts[1], Market(marketAddress).stakes(1, address(this)));
-        assertEq(simStakingInfo.stakeAmounts[0], Market(marketAddress).reserveDoN0()); // reserveDoN0 matches amount taked for outcome 0
-        assertEq(simStakingInfo.stakeAmounts[1], Market(marketAddress).reserveDoN1()); // reserveDoN1 matches amount taked for outcome 1
+        assertEq(simStakingInfo.stakeAmounts[0], getStakeAmount(marketAddress, 0, address(this))); // expected amount staked for outcome matches amount staked
+        assertEq(simStakingInfo.stakeAmounts[1], getStakeAmount(marketAddress, 1, address(this)));
+        (, uint reserveDoN0, uint reserveDoN1) = Market(marketAddress).getTokenCReserves();
+        assertEq(simStakingInfo.stakeAmounts[0], reserveDoN0); // reserveDoN0 matches amount taked for outcome 0
+        assertEq(simStakingInfo.stakeAmounts[1], reserveDoN1); // reserveDoN1 matches amount taked for outcome 1
         keepReservesAndBalsInCheck();
 
         assertEq(getMarketStage(marketAddress), 2); // stage is now MarketBuffer
@@ -89,7 +90,7 @@ contract MarketBufferTest is MarketTestsShared {
         expireMarket();
 
         OracleMultiSig(oracle).addTxSetMarketOutcome(0, marketAddress);
-        assertEq(Market(marketAddress).outcome(), 0);
+        assertEq(getMarketOutcome(marketAddress), 0);
     }
 
     function testFail_setOutcomeAfterFewEscalations() public {
@@ -99,7 +100,7 @@ contract MarketBufferTest is MarketTestsShared {
         simStakingRoundsBeforeEscalationLimit(sharedOracleConfig.donEscalationLimit);
 
         OracleMultiSig(oracle).addTxSetMarketOutcome(0, marketAddress);
-        assertEq(Market(marketAddress).outcome(), 0);
+        assertEq(getMarketOutcome(marketAddress), 0);
     }
 
     // should fail
@@ -118,8 +119,7 @@ contract MarketBufferTest is MarketTestsShared {
         simTradesInFavorOfOutcome0();
         expireMarket();
 
-        address token0 = Market(marketAddress).token0();
-        address token1 = Market(marketAddress).token1();
+        (,address token0, address token1) = Market(marketAddress).getTokenAddresses();
         OutcomeToken(token0).transfer(marketAddress, OutcomeToken(token0).balanceOf(address(this)));
         Market(marketAddress).redeemWinning(0, address(this));
     }
@@ -197,7 +197,7 @@ contract MarketBufferTest is MarketTestsShared {
         expireMarket();
         expireBufferPeriod(); // notice since no staking, outcome is set to favored outcome i.e. 0
 
-        assertEq(Market(marketAddress).outcome(), 2); // outcome is still 2
+        assertEq(getMarketOutcome(marketAddress), 2); // outcome is still 2
 
         // redeem winning to close the market & set the outcomme
         redeemWinning(0, 10*10**18, 0);
@@ -207,7 +207,7 @@ contract MarketBufferTest is MarketTestsShared {
 
         // market resolved to outcome 0 & market stage is 4 
         assertEq(getMarketStage(marketAddress), 4); 
-        assertEq(Market(marketAddress).outcome(), 0); 
+        assertEq(getMarketOutcome(marketAddress), 0); 
     }
 
     function test_outcomeSetTo2PostBufferExpiry() public {
@@ -225,9 +225,7 @@ contract MarketBufferTest is MarketTestsShared {
         expireMarket();
         expireBufferPeriod();
 
-        assertEq(Market(marketAddress).outcome(), 2); // outcome is still 2
-
-        uint reserve0 = Market(marketAddress).reserve0();
+        assertEq(getMarketOutcome(marketAddress), 2); // outcome is still 2
 
         redeemWinning(0, 10*10**18, 2);
         keepReservesAndBalsInCheck();
@@ -236,7 +234,7 @@ contract MarketBufferTest is MarketTestsShared {
 
         // market resolved to outcome 2 & market stage is 4 
         assertEq(getMarketStage(marketAddress), 4); 
-        assertEq(Market(marketAddress).outcome(), 2); 
+        assertEq(getMarketOutcome(marketAddress), 2); 
 
 
     }
@@ -251,8 +249,7 @@ contract MarketBufferTest is MarketTestsShared {
 
         expireBufferPeriod();
 
-        assertEq(Market(marketAddress).outcome(), 2); // outcome is still 2
-
+        assertEq(getMarketOutcome(marketAddress), 2); // outcome is still 2
         redeemStake(
             simStakingInfo.lastOutcomeStaked, 
             simStakingInfo.lastOutcomeStaked, 
@@ -269,7 +266,7 @@ contract MarketBufferTest is MarketTestsShared {
 
         // market resolved 
         assertEq(getMarketStage(marketAddress), 4); 
-        assertEq(Market(marketAddress).outcome(), simStakingInfo.lastOutcomeStaked); 
+        assertEq(getMarketOutcome(marketAddress), simStakingInfo.lastOutcomeStaked); 
 
         // redeem winning
         if (simStakingInfo.lastOutcomeStaked == 0){
@@ -295,17 +292,16 @@ contract MarketBufferTest is MarketTestsShared {
 
         redeemWinning(0, 2*10**18, simStakingInfo.lastOutcomeStaked); // market changes to closed
 
-        address token0 = Market(marketAddress).token0();
-        address token1 = Market(marketAddress).token1();
-        uint reserve0Before = Market(marketAddress).reserve0();
-        uint reserve1Before = Market(marketAddress).reserve1();
+        (,address token0, address token1) = Market(marketAddress).getTokenAddresses();
+        (uint reserve0Before, uint reserve1Before) = Market(marketAddress).getOutcomeReserves();
         uint balance0before = OutcomeToken(token0).balanceOf(address(this));
         uint balance1before = OutcomeToken(token1).balanceOf(address(this));
         Market(marketAddress).claimReserve(); // claiming reserver tokens
         assertEq(reserve0Before+balance0before, OutcomeToken(token0).balanceOf(address(this))); // token0 balance should increase by reserve0
         assertEq(reserve1Before+balance1before, OutcomeToken(token1).balanceOf(address(this))); // token1 balance should increase by reserve1
-        assertEq(uint(0), Market(marketAddress).reserve0()); // token reserve should be 0
-        assertEq(uint(0), Market(marketAddress).reserve1());
+        (uint reserve0After, uint reserve1After) = Market(marketAddress).getOutcomeReserves();
+        assertEq(uint(0), reserve0After); // token reserve should be 0
+        assertEq(uint(0), reserve1After);
         assertEq(uint(0), OutcomeToken(token0).balanceOf(marketAddress)); // token balance of market should be 0
         assertEq(uint(0), OutcomeToken(token1).balanceOf(marketAddress)); // token balance of market should be 0
 
@@ -331,7 +327,8 @@ contract MarketBufferTest is MarketTestsShared {
      function checkStateMarketExpiresWithNoBufferPeriod() internal {
         // change oracle's donEscalationLimit to zero & create a new default market
         OracleMultiSig(oracle).addTxChangeDoNBufferBlocks(0);
-        assertEq(OracleMultiSig(oracle).donBufferBlocks(), 0);
+        (,,,,,,uint donBufferBlocks,) = OracleMultiSig(oracle).getMarketParams();
+        assertEq(donBufferBlocks, 0);
 
         createMarket(0x0101000100010001010101000101000001010001010100000101000001010101, 1*10**18);
         simTradesInFavorOfOutcome0();
@@ -342,7 +339,7 @@ contract MarketBufferTest is MarketTestsShared {
         checkStateMarketExpiresWithNoBufferPeriod();
 
         assertEq(getMarketStage(marketAddress), 1); // stage is still MarketFunded
-        assertEq(Market(marketAddress).outcome(), 2); // outcome hasn't been set
+        assertEq(getMarketOutcome(marketAddress), 2); // outcome hasn't been set
 
         // redeem winnings
         redeemWinning(0, 10*10**18, 0);
@@ -351,7 +348,7 @@ contract MarketBufferTest is MarketTestsShared {
         keepReservesAndBalsInCheck();
 
         assertEq(getMarketStage(marketAddress), 4); // MarketClosed
-        assertEq(Market(marketAddress).outcome(), 0); // outcome has been set to favored outcome
+        assertEq(getMarketOutcome(marketAddress), 0); // outcome has been set to favored outcome
 
      }
 
@@ -365,7 +362,7 @@ contract MarketBufferTest is MarketTestsShared {
      function testFail_zeroBufferBlocksSetOutcome() public {
         checkStateMarketExpiresWithNoBufferPeriod();   
         OracleMultiSig(oracle).addTxSetMarketOutcome(0, marketAddress);
-        assertEq(Market(marketAddress).outcome(), 0);
+        assertEq(getMarketOutcome(marketAddress), 0);
      }
 
      /* 
@@ -376,9 +373,10 @@ contract MarketBufferTest is MarketTestsShared {
      function checkStateMarketExpiresWithNoBufferPeriod0EscalationLimit() internal {
         // change oracle's donEscalationLimit to zero & create a new default market
         OracleMultiSig(oracle).addTxChangeDoNBufferBlocks(0);
-        assertEq(OracleMultiSig(oracle).donBufferBlocks(), 0);
         OracleMultiSig(oracle).addTxChangeDonEscalationLimit(0);
-        assertEq(OracleMultiSig(oracle).donEscalationLimit(), 0);
+        (,,,,uint donEscalationLimit,,uint donBufferBlocks,) = OracleMultiSig(oracle).getMarketParams();
+        assertEq(donBufferBlocks, 0);
+        assertEq(donEscalationLimit, 0);
 
         createMarket(0x0101000100010001010101000101000001010001010100000101000001010101, 1*10**18);
         simTradesInFavorOfOutcome0();
@@ -389,7 +387,7 @@ contract MarketBufferTest is MarketTestsShared {
         checkStateMarketExpiresWithNoBufferPeriod0EscalationLimit();
 
         assertEq(getMarketStage(marketAddress), 1); // stage is still MarketFunded
-        assertEq(Market(marketAddress).outcome(), 2); // outcome hasn't been set
+        assertEq(getMarketOutcome(marketAddress), 2); // outcome hasn't been set
 
         // redeem winnings
         redeemWinning(0, 10*10**18, 0);
@@ -398,13 +396,13 @@ contract MarketBufferTest is MarketTestsShared {
         keepReservesAndBalsInCheck();
 
         assertEq(getMarketStage(marketAddress), 4); // MarketClosed
-        assertEq(Market(marketAddress).outcome(), 0); // outcome has been set to favored outcome
+        assertEq(getMarketOutcome(marketAddress), 0); // outcome has been set to favored outcome
      }
 
      function testFail_zeroBufferBlocks0EscalationLimitSetOutcome() public {
         checkStateMarketExpiresWithNoBufferPeriod0EscalationLimit();  
         OracleMultiSig(oracle).addTxSetMarketOutcome(0, marketAddress);
-        assertEq(Market(marketAddress).outcome(), 0);
+        assertEq(getMarketOutcome(marketAddress), 0);
      }
         
 } 

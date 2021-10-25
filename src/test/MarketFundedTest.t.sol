@@ -34,12 +34,12 @@ contract MarketFundedTest is MarketTestsShared {
         oracleOwners[0] = address(this);
         address tempOracle = address(new OracleMultiSig(oracleOwners, 1, 10));
         OracleMultiSig(tempOracle).addTxSetupOracle(
-            false,
-            sharedOracleConfig.feeNum,
-            sharedOracleConfig.feeDenom,
             sharedOracleConfig.tokenC,
-            sharedOracleConfig.expireAfterBlocks,
+            false,
+            sharedOracleConfig.feeNumerator,
+            sharedOracleConfig.feeDenominator,
             sharedOracleConfig.donEscalationLimit,
+            sharedOracleConfig.expireBufferBlocks,
             sharedOracleConfig.donBufferBlocks,
             sharedOracleConfig.resolutionBufferBlocks
         );
@@ -53,12 +53,12 @@ contract MarketFundedTest is MarketTestsShared {
         oracleOwners[0] = address(this);
         address tempOracle = address(new OracleMultiSig(oracleOwners, 1, 10));
         OracleMultiSig(tempOracle).addTxSetupOracle(
-            true,
+            sharedOracleConfig.tokenC,
+            sharedOracleConfig.isActive,
             100,
             99,
-            sharedOracleConfig.tokenC,
-            sharedOracleConfig.expireAfterBlocks,
             sharedOracleConfig.donEscalationLimit,
+            sharedOracleConfig.expireBufferBlocks,
             sharedOracleConfig.donBufferBlocks,
             sharedOracleConfig.resolutionBufferBlocks
         );
@@ -90,12 +90,11 @@ contract MarketFundedTest is MarketTestsShared {
         address expectedAddress = getExpectedMarketAddress(_identifier);
 
         // check market has been funded & tokenC balance == _fundingAmount
-        assertEq(getMarketStage(marketAddress), uint(1));
+        assertEq(getMarketStage(expectedAddress), uint(1));
         assertEq(MemeToken(memeToken).balanceOf(expectedAddress), _fundingAmount);
 
         // check outcome token balances == _fundingAmount
-        address token0 = Market(expectedAddress).token0();
-        address token1 = Market(expectedAddress).token1();
+        (,address token0, address token1) = Market(expectedAddress).getTokenAddresses();
         assertEq(OutcomeToken(token0).balanceOf(expectedAddress), _fundingAmount);
         assertEq(OutcomeToken(token1).balanceOf(expectedAddress), _fundingAmount);
     }
@@ -108,8 +107,7 @@ contract MarketFundedTest is MarketTestsShared {
         uint a1 = uint(_a1);
         uint a = Math.getAmountCToBuyTokens(a0, a1, _fundingAmount, _fundingAmount);
         MemeToken(memeToken).transfer(marketAddress, a);
-        address token0 = Market(marketAddress).token0();
-        address token1 = Market(marketAddress).token1();
+        (,address token0, address token1) = Market(marketAddress).getTokenAddresses();
         uint token0BalanceBefore = OutcomeToken(token0).balanceOf(address(this));
         uint token1BalanceBefore = OutcomeToken(token1).balanceOf(address(this));
         Market(marketAddress).buy(a0, a1, address(this));
@@ -129,11 +127,15 @@ contract MarketFundedTest is MarketTestsShared {
         MemeToken(memeToken).transfer(marketAddress, a);
         Market(marketAddress).buy(a0, a1, address(this));
         keepReservesAndBalsInCheck();
-
+        emit log_named_uint(" a0 ", a0);
+        emit log_named_uint(" a1 ", a1);
+        emit log_named_uint(" a ", a);
+        emit log_named_uint("_fuding", _fundingAmount);
+        emit log_named_uint("r0", _fundingAmount + a - a0);
+        emit log_named_uint("r1", _fundingAmount + a - a1);
         // sell tokens
         uint sa = Math.getAmountCBySellTokens(a0, a1, _fundingAmount + a - a0, _fundingAmount + a - a1);
-        address token0 = Market(marketAddress).token0();
-        address token1 = Market(marketAddress).token1();
+        (,address token0, address token1) = Market(marketAddress).getTokenAddresses();
         OutcomeToken(token0).transfer(marketAddress, a0);
         OutcomeToken(token1).transfer(marketAddress, a1);
         uint memeBalanceBefore = MemeToken(memeToken).balanceOf(address(this));
@@ -175,7 +177,7 @@ contract MarketFundedTest is MarketTestsShared {
         simTradesInFavorOfOutcome0();
 
         OracleMultiSig(oracle).addTxSetMarketOutcome(0, marketAddress);
-        assertEq(Market(marketAddress).outcome(), 0);
+        assertEq(getMarketOutcome(marketAddress), 0);
     }
 
     function testFail_tradePostMarketExpiry() public {
@@ -184,10 +186,9 @@ contract MarketFundedTest is MarketTestsShared {
 
         expireMarket();
 
-        uint r0 = Market(marketAddress).reserve0();
-        uint r1 = Market(marketAddress).reserve1();
+        (uint r0, uint r1) = Market(marketAddress).getOutcomeReserves();
         uint a = Math.getAmountCToBuyTokens(10*10**18, 0, r0, r1);
-        MemeToken(memeToken).transfer(marketAddress, a);
+        MemeToken( memeToken).transfer(marketAddress, a);
         Market(marketAddress).buy(10*10**18, 0, address(this));
     }
 }

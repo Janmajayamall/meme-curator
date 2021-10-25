@@ -38,21 +38,11 @@ interface IMarket {
 
     function getTokenAddresses() external view returns (address,address,address);
     function getOutcomeReserves() external view returns (uint,uint);
-    function getMarketDetails() external view returns (
-        uint32,
-        uint32,
-        uint32,
-        uint32,
-        uint32,
-        uint32,
-        uint16,
-        uint16,
-        uint8,
-        uint8,
-        uint8,
-        uint8
-    );
+    function getTokenCReserves() external view returns (uint,uint,uint);
+    function getMarketDetails() external view returns (uint[12] memory);
     function getStaking() external view returns(uint,address,address,uint8);
+    function getStake(uint _for, address _of) external view returns(uint);
+
 
     function fund() external;
     function buy(uint amount0, uint amount1, address to) external;   

@@ -8,15 +8,26 @@ library Math {
         uint rootVal;
         uint s;
         assembly {
-            if iszero(and(lt(a0,0x1000000000000000000000000000000),lt(a1,0x1000000000000000000000000000000))) {
-                revert(0,0)
+            // safe in total adds around 100
+            function safeAdd(v1,v2) -> r {
+                r := add(v1,v2)
+                if or(lt(r,v1),lt(r,v2)) {revert(0,0)}
             }
-            if iszero(and(lt(r0,0x1000000000000000000000000000000),lt(r1,0x1000000000000000000000000000000))) {
-                revert(0,0)
+            function safeMul(v1,v2) -> r {
+                {
+                    switch or(iszero(v1), iszero(v2))
+                    case 1 {
+                        r := 0
+                    }
+                    case 0 {
+                        r := mul(v1,v2) 
+                        if iszero(eq(v1, div(r,v2))) {revert(0,0)}
+                    }
+                }
             }
             {
-                let r0Pr1 := add(r0,r1)
-                let a0Pa1 := add(a0,a1)
+                let r0Pr1 := safeAdd(r0,r1)
+                let a0Pa1 := safeAdd(a0,a1)
                 switch lt(r0Pr1, a0Pa1)
                 case 1 {
                     s := 0
@@ -27,23 +38,29 @@ library Math {
                     b := sub(r0Pr1,a0Pa1)
                 }
             }
-            let g := mul(b,b)
-            rootVal := sub(add(mul(b,b), mul(4, add(mul(r0,a1), mul(r1,a0)))), mul(4, mul(a0,a1)))
+            let g := safeMul(b,b)
+            rootVal := sub(safeAdd(safeMul(b,b), safeMul(4, safeAdd(safeMul(r0,a1), safeMul(r1,a0)))), safeMul(4, safeMul(a0,a1)))
         }
         rootVal = sqrt(rootVal);
         assembly {
-            {
-                switch iszero(s) 
-                case 1 {
-                    a := div(add(b,rootVal), 2)
-                    if or(lt(add(r0,a),a0), lt(add(r1,a),a1)){
-                        if lt(b, rootVal) {revert(0,0)}
-                        a := div(sub(b,rootVal),2)
+            function safeAdd(v1,v2) -> r {
+                r := add(v1,v2)
+                if or(lt(r,v1),lt(r,v2)) {revert(0,0)}
+            }
+            function safeSub(v1,v2) -> r {
+                if lt(v1,v2) {revert(0,0)}
+                r := sub(v1,v2)
+            }
+            {  
+                switch s 
+                case 0 {
+                    a := div(safeAdd(b,rootVal), 2)
+                    if or(lt(safeAdd(r0,a),a0), lt(safeAdd(r1,a),a1)){
+                        a := div(safeSub(b,rootVal),2)
                     }
                 }
-                case 0 {
-                    if lt(rootVal,b) {revert(0,0)}
-                    a := div(sub(rootVal,b),2)
+                case 1 {
+                    a := div(safeSub(rootVal,b),2)
                 }
             }
             a := add(a,1)
@@ -64,7 +81,7 @@ library Math {
         // rootVal = sqrt(rootVal);
         // if (sign == 0){
         //     a = ((b + rootVal) / 2);
-        //     if (!isValidAmountCRoot(a0, a1, r0, r1, a, true)){
+        //     if ((r0+a)<a0||(r1+a)<a1){
         //         require(b >= rootVal, 'ERR rootVal>b sign=0');
         //         a = ((b - rootVal)/2);
         //     }
@@ -77,11 +94,25 @@ library Math {
 
     function getTokenAmountToBuyWithAmountC(uint fixedTokenAmount, uint fixedTokenIndex, uint r0, uint r1, uint a) internal pure returns (uint tokenAmount){
         assembly {
-            if iszero(and(lt(a,0x1000000000000000000000000000000),lt(fixedTokenAmount,0x1000000000000000000000000000000))) {
-                revert(0,0)
+            function safeAdd(v1,v2) -> r {
+                r := add(v1,v2)
+                if or(lt(r,v1),lt(r,v2)) {revert(0,0)}
             }
-            if iszero(and(lt(r0,0x1000000000000000000000000000000),lt(r1,0x1000000000000000000000000000000))) {
-                revert(0,0)
+            function safeMul(v1,v2) -> r {
+                {
+                    switch or(iszero(v1), iszero(v2))
+                    case 1 {
+                        r := 0
+                    }
+                    case 0 {
+                        r := mul(v1,v2) 
+                        if iszero(eq(v1, div(r,v2))) {revert(0,0)}
+                    }
+                }
+            }
+            function safeSub(v1,v2) -> r {
+                if lt(v1,v2) {revert(0,0)}
+                r := sub(v1,v2)
             }
 
             if gt(fixedTokenIndex, 1) {revert(0,0)}
@@ -90,18 +121,20 @@ library Math {
             {
                 switch fixedTokenIndex
                 case 0 {
-                    if iszero(lt(fixedTokenAmount,add(r0,a))) {revert(0,0)}
-                    x := add(r1,a)
-                    y := div(mul(r1,r0),sub(add(r0,a),fixedTokenAmount))
+                    
+                    let denom := safeSub(safeAdd(r0,a),fixedTokenAmount)
+                    if iszero(denom) {revert(0,0)}
+                    x := safeAdd(r1,a)
+                    y := div(safeMul(r1,r0),denom)
                 }
                 case 1 {
-                    if iszero(lt(fixedTokenAmount,add(r1,a))) {revert(0,0)}
-                    x := add(r0,a)
-                    y := div(mul(r0,r1),sub(add(r1,a),fixedTokenAmount))
+                    let denom := safeSub(safeAdd(r1,a),fixedTokenAmount)
+                    if iszero(denom) {revert(0,0)}
+                    x := safeAdd(r0,a)
+                    y := div(safeMul(r0,r1),denom)
                 }
             }
-            if eq(lt(y,x),0) {revert(0,0)}
-            tokenAmount := sub(sub(x,y),1)
+            tokenAmount := safeSub(safeSub(x,y),1)
         }
         // require(fixedTokenIndex < 2);
         // uint x;
@@ -128,31 +161,64 @@ library Math {
         uint nveB;
         uint rV;
         assembly {   
-            if iszero(and(lt(a0,0x1000000000000000000000000000000),lt(a1,0x1000000000000000000000000000000))) {
-                revert(0,0)
+            function safeAdd(v1,v2) -> r {
+                r := add(v1,v2)
+                if or(lt(r,v1),lt(r,v2)) {revert(0,0)}
             }
-            if iszero(and(lt(r0,0x1000000000000000000000000000000),lt(r1,0x1000000000000000000000000000000))) {
-                revert(0,0)
+            function safeMul(v1,v2) -> r {
+                {
+                    switch or(iszero(v1), iszero(v2))
+                    case 1 {
+                        r := 0
+                    }
+                    case 0 {
+                        r := mul(v1,v2) 
+                        if iszero(eq(v1, div(r,v2))) {revert(0,0)}
+                    }
+                }
+            }
+            function safeSub(v1,v2) -> r {
+                if lt(v1,v2) {revert(0,0)}
+                r := sub(v1,v2)
             }
 
-            nveB := add(r0,add(a0, add(r1,a1)))
-            rV := sub(mul(nveB, nveB), mul(4, add(mul(r0,a1), add(mul(r1,a0), mul(a0,a1))))) 
+            nveB := safeAdd(r0,safeAdd(a0, safeAdd(r1,a1)))
+            rV := safeSub(safeMul(nveB, nveB), safeMul(4, safeAdd(safeMul(r0,a1), safeAdd(safeMul(r1,a0), safeMul(a0,a1))))) 
         }
         rV = sqrt(rV);
         assembly {
-            a := div(add(nveB, rV), 2)
-            if or(lt(add(r0,a0), a),lt(add(r1,a1), a)) {
-                if lt(nveB, rV) {revert(0,0)}
-                a := div(sub(nveB, rV),2)
+            function safeAdd(v1,v2) -> r {
+                r := add(v1,v2)
+                if or(lt(r,v1),lt(r,v2)) {revert(0,0)}
             }
-            a := sub(a,1)
+            function safeMul(v1,v2) -> r {
+                {
+                    switch or(iszero(v1), iszero(v2))
+                    case 1 {
+                        r := 0
+                    }
+                    case 0 {
+                        r := mul(v1,v2) 
+                        if iszero(eq(v1, div(r,v2))) {revert(0,0)}
+                    }
+                }
+            }
+            function safeSub(v1,v2) -> r {
+                if lt(v1,v2) {revert(0,0)}
+                r := sub(v1,v2)
+            }
+            a := div(safeAdd(nveB, rV), 2)
+            if or(lt(safeAdd(r0,a0), a),lt(safeAdd(r1,a1), a)) {
+                a := div(safeSub(nveB, rV),2)
+            }
+            a := safeSub(a,1)
         }
         // uint nveB = r0 + a0 + r1 + a1;
         // uint c = (r0*a1) + (r1*a0) + (a0*a1);
         // uint rootVal = ((nveB**2) - (4 * c));
         // rootVal = sqrt(rootVal);
         // a = (nveB + rootVal)/2;
-        // if (!isValidAmountCRoot(a0, a1, r0, r1, a, false)){
+        // if ((r0+a0)<a || (r1+a1)<a){
         //     require(nveB > rootVal, 'ERR');
         //     a = (nveB - rootVal)/2;
         // }
@@ -161,11 +227,25 @@ library Math {
 
     function getTokenAmountToSellForAmountC(uint fixedTokenAmount, uint fixedTokenIndex, uint r0, uint r1, uint a) internal pure returns (uint tokenAmount){
         assembly {
-            if iszero(and(lt(a,0x1000000000000000000000000000000),lt(fixedTokenAmount,0x1000000000000000000000000000000))) {
-                revert(0,0)
+            function safeAdd(v1,v2) -> r {
+                r := add(v1,v2)
+                if or(lt(r,v1),lt(r,v2)) {revert(0,0)}
             }
-            if iszero(and(lt(r0,0x1000000000000000000000000000000),lt(r1,0x1000000000000000000000000000000))) {
-                revert(0,0)
+            function safeMul(v1,v2) -> r {
+                {
+                    switch or(iszero(v1), iszero(v2))
+                    case 1 {
+                        r := 0
+                    }
+                    case 0 {
+                        r := mul(v1,v2) 
+                        if iszero(eq(v1, div(r,v2))) {revert(0,0)}
+                    }
+                }
+            }
+            function safeSub(v1,v2) -> r {
+                if lt(v1,v2) {revert(0,0)}
+                r := sub(v1,v2)
             }
 
             if gt(fixedTokenIndex, 1) {revert(0,0)}
@@ -174,19 +254,20 @@ library Math {
             {
                 switch fixedTokenIndex 
                 case 0 {
-                    if iszero(lt(a,add(r0,fixedTokenAmount))) {revert(0,0)}
+                    let denom := safeSub(safeAdd(r0,fixedTokenAmount), a)
+                    if iszero(denom) {revert(0,0)}
                     x := r1
-                    y := div(mul(r0,r1),sub(add(r0,fixedTokenAmount),a))
+                    y := div(mul(r0,r1),denom)
                 }
                 case 1 {
-                    if iszero(lt(a,add(r1,fixedTokenAmount))) {revert(0,0)}
+                    let denom := safeSub(safeAdd(r1,fixedTokenAmount), a)
+                    if iszero(denom) {revert(0,0)}
                     x := r0
-                    y := div(mul(r0,r1),sub(add(r1,fixedTokenAmount),a))
+                    y := div(mul(r0,r1),denom)
                 }
             }
-            y := add(y,a)
-            if gt(x,y) {revert(0,0)}
-            tokenAmount := add(sub(y,x),1)
+            y := safeAdd(y,a)
+            tokenAmount := safeAdd(safeSub(y,x),1)
         }
         // require(fixedTokenIndex < 2);
         // uint x;

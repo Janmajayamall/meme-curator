@@ -11,7 +11,7 @@ import './interfaces/IMarketFactory.sol';
 contract MarketRouter {
     address public factory;
 
-    bytes32 constant internal MARKET_INIT_CODE_HASH = 0x454cbbfae5bc62bb41d20167c90688f6db3104c7d82ae13e0e5978c1ad981a7d;
+    bytes32 constant internal MARKET_INIT_CODE_HASH = 0xb71e42e07c703bc138c3a976c36f7928f7b06dee52ec04081e1db960e8d3511d;
 
     constructor(address _factory) {
         factory = _factory;
@@ -56,7 +56,7 @@ contract MarketRouter {
 
     /// @notice Buy minimum amountOfToken0 & amountOfToken1 with collteral tokens == amountInC. 
     /// fixedTokenIndex - index to token of which amount does not change in reaction to prices 
-    function buyMinTokensForExactCTokens(uint amountOutToken0Min, uint amountOutToken1Min, uint amountInC, uint fixedTokenIndex, address creator, address market) external {
+    function buyMinTokensForExactCTokens(uint amountOutToken0Min, uint amountOutToken1Min, uint amountInC, uint fixedTokenIndex, address market) external {
         require(fixedTokenIndex < 2);
 
         (uint reserve0, uint reserve1) = IMarket(market).getOutcomeReserves();
