@@ -10,9 +10,9 @@ import './interfaces/IOutcomeToken.sol';
 import './interfaces/IERC20.sol';
 
 contract Market is IMarket {
-    uint256 public reserve0;
-    uint256 public reserve1;
-    uint256 public reserveC;
+    uint256 reserve0;
+    uint256 reserve1;
+    uint256 reserveC;
     
     address immutable token0;
     address immutable token1;
@@ -25,9 +25,9 @@ contract Market is IMarket {
     /* 
     Staking Info
     */
-    uint256 private reserveDoN0;
-    uint256 private reserveDoN1;
-    Staking private staking;
+    uint256 reserveDoN0;
+    uint256 reserveDoN1;
+    Staking staking;
     // bytes32 (i.e. keccak(en(address,key))) => amount staked
     mapping(bytes32 => uint256) stakes;
 
@@ -90,6 +90,10 @@ contract Market is IMarket {
            return (false, 2);
         }
         return (true, _details.outcome);
+    }
+
+    function getMarketInfo() external override view returns(bytes32, address, address){
+        return (identifier,creator,oracle);
     }
 
     // get token addresses

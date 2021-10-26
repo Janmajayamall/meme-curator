@@ -91,7 +91,6 @@ contract MarketTestShared is DSTest, Shared {
             simStakingInfo.lastOutcomeStaked = _outcome;
             simStakingInfo.lastAmountStaked = _amount;
             simStakingInfo.stakeAmounts[_outcome] += _amount;
-
         }
     }
 

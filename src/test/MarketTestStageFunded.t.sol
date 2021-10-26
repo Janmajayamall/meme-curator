@@ -80,6 +80,11 @@ contract MarketTestStageFunded is MarketTestShared {
         assertGt(size, 0);
     }
 
+    function testFail_marketCreationWithMarketFactoryTwice() public {
+        MarketFactory(marketFactory).createMarket(address(this), oracle, sharedIdentifier);
+        MarketFactory(marketFactory).createMarket(address(this), oracle, sharedIdentifier);
+    }
+
 
     function test_marketCreationWithMarketRouter(bytes32 _identifier, uint120 _fundingAmount) public {
         if (_fundingAmount  == 0) return;

@@ -36,6 +36,7 @@ interface IMarket {
         uint8 stage;
     }
 
+    function getMarketInfo() external view returns(bytes32, address, address);
     function getTokenAddresses() external view returns (address,address,address);
     function getOutcomeReserves() external view returns (uint,uint);
     function getTokenCReserves() external view returns (uint,uint,uint);
