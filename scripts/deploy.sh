@@ -5,7 +5,7 @@ set -eo pipefail
 # import the deployment helpers
 . $(dirname $0)/common.sh
 
-NAME=OutcomeToken
+NAME=MarketFactory
 # Deploy.
-Contract=$(deploy $NAME)
+Contract=$(deploy $NAME "")
 log "$NAME deployed at:" $Contract

@@ -33,61 +33,6 @@ contract Market is IMarket {
 
     MarketDetails marketDetails;
 
-    // modifier isMarketBuffer(){
-    //     Stages _stage = stage;
-
-    //     // if stage value is MarketFunded & market time expired & initial (set in  constructor) don buffer time hasn't expired, then change state to MarketBuffer
-    //     if (_stage == Stages.MarketFunded && block.number >= expireAtBlock && block.number < donBufferEndsAtBlock){
-    //         _stage = Stages.MarketBuffer;
-    //         stage = _stage;
-    //         donBufferEndsAtBlock = block.number + donBufferBlocks;
-    //     }
-
-    //     // only when stage is MarketBuffer && escalation limit hasn't been reached && buffer period hasn't expired
-    //     require (_stage == Stages.MarketBuffer && donEscalationLimit > donEscalationCount && block.number < donBufferEndsAtBlock, "FALSE MB");
-    //     _;
-    // }
-
-    // modifier isMarketResolve(){
-    //     Stages _stage = stage;
-
-    //     if(_stage != Stages.MarketResolve && _stage != Stages.MarketCreated){
-    //         // if market expired and don escalation limit is zero, then market directly goes to MarketResolve (skipping MarketBuffer)
-    //         // Note if donEscalationLimit == 0 && donBufferBlocks == 0 then market closes after expiry, thus no Market Resolve
-    //         if (block.number >= expireAtBlock && donEscalationLimit == 0 && donBufferBlocks != 0){
-    //             _stage = Stages.MarketResolve;
-    //         }
-    //     }
-
-    //     // stage should be MarketResolve & resolution time shouldn't have expired
-    //     require (_stage == Stages.MarketResolve && block.number < resolutionEndsAtBlock, "FALSE MR");
-    //     _;
-    // }
-
-    // modifier isMarketClosed() {
-    //     Stages _stage = stage;
-
-    //     uint _donEscalationLimit = donEscalationLimit;
-    //     uint _resolutionEndsAtBlock = resolutionEndsAtBlock;
-
-    //     // when donBuffer && escalationLimit == 0, preference is given to donBuffer, that means market closes after expiration & does not waits for resolution
-    //     // when escalationLimit == 0 & donBuffer != 0 then donBuffer is ignored and market transitions to resolve stage right after expiration
-    //     // when donBuffer == 0 & escalationLimit != 0 then market closes right after expiration
-    //     if (_stage != Stages.MarketClosed && _stage != Stages.MarketCreated){
-    //         if ((_stage != Stages.MarketResolve && block.number >= donBufferEndsAtBlock && (donBufferBlocks == 0 || _donEscalationLimit != 0))
-    //             || (block.number >= _resolutionEndsAtBlock && _stage == Stages.MarketResolve)
-    //             || (block.number >= _resolutionEndsAtBlock && _donEscalationLimit == 0) 
-    //         ){
-    //             setOutcomeByExpiry();
-    //             _stage = Stages.MarketClosed;
-    //             stage = Stages.MarketClosed;
-    //         }
-    //     }
-
-    //     require (_stage == Stages.MarketClosed, "FALSE MC");
-    //     _;
-    // }
-
     constructor(){
         address _oracle;
         (creator, _oracle, identifier) = IMarketFactory(msg.sender).deployParams();
@@ -195,25 +140,6 @@ contract Market is IMarket {
         return stakes[keccak256(abi.encode(_of, _for))];
     }
 
-    // function setOutcomeByExpiry() internal {           
-    //     // set the outcome as the last staked outcome, if any & close the market
-    //     if (lastOutcomeStaked == 0){
-    //         outcome = 0;
-    //     }else if (lastOutcomeStaked == 1){
-    //         outcome = 1;
-    //     }else {
-    //         // not outcome was staked, thus resolve the outcome to higher probability
-    //         // the one with lesser reserve has higher probability
-    //         if (reserve0 < reserve1){
-    //             outcome = 0;
-    //         }else if (reserve1 < reserve0){
-    //             outcome = 1;
-    //         }else {
-    //             outcome = 2;
-    //         }
-    //     }
-    // }
-
     function fund() external override {
         MarketDetails memory _details = marketDetails;
         require(_details.stage == uint8(Stages.MarketCreated));
@@ -232,12 +158,6 @@ contract Market is IMarket {
         _details.donBufferEndsAtBlock = _details.expireAtBlock + _details.donBufferBlocks; // pre-set buffer expiry for first buffer period
         _details.resolutionEndsAtBlock = _details.expireAtBlock + _details.resolutionBufferBlocks; // pre-set resolution expiry, in case donEscalationLimit == 0 && donBufferBlocks > 0
         marketDetails = _details;
-        
-        // stage = Stages.MarketFunded;
-        // uint _expireBufferBlocks = expireBufferBlocks;
-        // expireAtBlock = block.number + _expireBufferBlocks; 
-        // donBufferEndsAtBlock = block.number + _expireBufferBlocks + donBufferBlocks; // pre-set buffer period expiry
-        // resolutionEndsAtBlock = block.number + _expireBufferBlocks + resolutionBufferBlocks; // pre-set resolution expiry, incase donEscalationLimit == 0
         
         require(amount > 0, 'ZERO');
     }
@@ -479,10 +399,3 @@ contract Market is IMarket {
         reserve1 = 0;
     }
 }
-
-
-/* 
-1. Reduce market contract size
-2. Adjust the rest according to new market.sol
-3. Test gas cost of functions
-4. writr sub grahs */

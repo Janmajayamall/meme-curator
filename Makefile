@@ -29,6 +29,7 @@ check-inter :; ./scripts/check-inter.sh
 deploy-dev :; @./scripts/deploy-dev.sh
 deploy-single :; @./scripts/deploy.sh # kinda useless - only for testinbg commands
 gas-test :; @./scripts/gas-test.sh
+spit-abis :; @./scripts/spit-abis.sh
 
 # mainnet
 deploy-mainnet: export ETH_RPC_URL = $(call network,mainnet)
