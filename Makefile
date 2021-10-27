@@ -31,6 +31,10 @@ deploy-single :; @./scripts/deploy.sh # kinda useless - only for testinbg comman
 gas-test :; @./scripts/gas-test.sh
 spit-abis :; @./scripts/spit-abis.sh
 
+# arbitrum-rinkeby
+deploy-arb-rinkeby: export ETH_RPC_URL=https://rinkeby.arbitrum.io/rpc
+deploy-arb-rinkeby: deploy-dev
+
 # mainnet
 deploy-mainnet: export ETH_RPC_URL = $(call network,mainnet)
 deploy-mainnet: check-api-key deploy

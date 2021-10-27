@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 
 import './Market.sol';
 import './interfaces/IMarketFactory.sol';
+import './interfaces/IMarket.sol';
+import './libraries/TransferHelper.sol';
 
 contract MarketFactory is IMarketFactory {
 
@@ -17,10 +19,16 @@ contract MarketFactory is IMarketFactory {
 
     event MarketCreated(address indexed market);
 
-    function createMarket(address _creator, address _oracle, bytes32 _identifier) override external {
+    function createMarket(address _creator, address _oracle, bytes32 _identifier, uint _fundingAmount) override external {
         deployParams = DeployParams({creator: _creator, oracle: _oracle, identifier: _identifier});
         address marketAddress = address(new Market{salt: keccak256(abi.encode(_creator, _oracle, _identifier))}());
         delete deployParams;
+
+        // fund
+        (address tokenC,,) = IMarket(marketAddress).getTokenAddresses();
+        TransferHelper.safeTransferFrom(tokenC, msg.sender, marketAddress, _fundingAmount);
+        IMarket(marketAddress).fund();
+
         emit MarketCreated(marketAddress);
     }
 }

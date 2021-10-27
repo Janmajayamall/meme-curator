@@ -37,8 +37,9 @@ contract GasMarketTestStageCreated is GasMarketTestShared {
         Market(marketAddress).fund();
     }
 
-    function test_marketRouterCreateMarket() external {
-        MarketRouter(marketRouter).createMarket(address(this), deployParams.oracle, deployParams.identifier, 10*10**18);
+    function test_marketFactoryCreateMarket() external {
+        // MarketRouter(marketRouter).createMarket(address(this), deployParams.oracle, deployParams.identifier, 10*10**18);
+        MarketFactory(marketFactory).createMarket(address(this), deployParams.oracle, deployParams.identifier, 10*10**18);
     }
 
 }   

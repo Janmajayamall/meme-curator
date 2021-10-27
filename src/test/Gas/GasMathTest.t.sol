@@ -6,6 +6,7 @@ import "./../../libraries/Math.sol";
 import "./../../OutcomeToken.sol";
 import "./../../OracleMultiSig.sol";
 import "./../../Market.sol";
+import "./../../MemeToken.sol";
 contract GasMathTest is DSTest {
 
     // function test_plusN() public {
@@ -59,7 +60,7 @@ contract GasMathTest is DSTest {
             1111871825054533892096512879497761333
         );
     }
-
+    
     function test_getTokenAmountToBuyWithAmountC() public {
         uint a0 = Math.getTokenAmountToBuyWithAmountC(
             0, 
@@ -80,7 +81,15 @@ contract GasMathTest is DSTest {
         );
     }
 
-    function test_creatingOutcomeToken() public {
+    address memeToken;
+    function setUp() public {
+        memeToken = address(new MemeToken());
+    }
+
+    function test_creatingOutcomeToken() public { 
         address(new OutcomeToken());
+    }
+    function test_mintMemeToken() public {
+        MemeToken(memeToken).mint(address(this), type(uint256).max);
     }
 }

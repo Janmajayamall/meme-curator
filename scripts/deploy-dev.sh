@@ -11,12 +11,12 @@ MarketRouter=$(deploy MarketRouter "" "$MarketFactory")
 OracleMultiSig=$(deploy OracleMultiSig "" "[$ETH_FROM]" 1 10)
 MemeToken=$(deploy MemeToken "")
 ContractHelper=$(deploy ContractHelper helpers/)
-export MarketFactory=$MarketFactory
-export MarketRouter=$MarketRouter
-export OracleMultiSig=$OracleMultiSig
-export MemeToken=$MemeToken
-export ETH_FROM=$ETH_FROM
-export ContractHelper=$ContractHelper
+# export MarketFactory=$MarketFactory
+# export MarketRouter=$MarketRouter
+# export OracleMultiSig=$OracleMultiSig
+# export MemeToken=$MemeToken
+# export ETH_FROM=$ETH_FROM
+# export ContractHelper=$ContractHelper
 
 log "MarketFactory deployed at:" $MarketFactory
 log "MarketRouter deployed at:" $MarketRouter

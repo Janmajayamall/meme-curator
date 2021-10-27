@@ -11,7 +11,7 @@ import './interfaces/IMarketFactory.sol';
 contract MarketRouter {
     address public factory;
 
-    bytes32 constant internal MARKET_INIT_CODE_HASH = 0x210a8d40bf6c6bdd38447ea356ef55fc9061ac576c5f85be2146952dc645419d;
+    bytes32 constant public MARKET_INIT_CODE_HASH = 0xc0a4df30a9b7ad588d99429f61871dd90dc770a8b76e2e43fd49edfdb9db7fa3;
 
     constructor(address _factory) {
         factory = _factory;
@@ -25,22 +25,6 @@ contract MarketRouter {
                 keccak256(abi.encode(creator, oracle, identifier)),
                 MARKET_INIT_CODE_HASH
             )))));
-    }
-
-    /// @notice Creates a new market
-    function createMarket(address _creator, address _oracle, bytes32 _identifier, uint amount) external {
-        address expectedAddress = getMarketAddress(_creator, _oracle, _identifier);
-        uint size;
-        assembly {
-            size := extcodesize(expectedAddress)
-        }
-        require(size == 0, "Market exists");
-        IMarketFactory(factory).createMarket(_creator, _oracle, _identifier);
-
-        (address tokenC,,) = IMarket(expectedAddress).getTokenAddresses();
-
-        TransferHelper.safeTransferFrom(tokenC, msg.sender, expectedAddress, amount);
-        IMarket(expectedAddress).fund();
     }
 
     /// @notice Buy exact amountOfToken0 & amountOfToken1 with collteral tokens <= amountInCMax

@@ -82,8 +82,9 @@ contract GasMarketTestShared is DSTest {
         // setup market router
         marketRouter = address(new MarketRouter(marketFactory));
 
-        // give max approval to market router
+        // give max approval to market router & market factory
         MemeToken(memeToken).approve(marketRouter, type(uint256).max);
+        MemeToken(memeToken).approve(marketFactory, type(uint256).max);
     }
 
     function setUp() virtual public {
