@@ -19,16 +19,10 @@ contract MarketFactory is IMarketFactory {
 
     event MarketCreated(address indexed market);
 
-    function createMarket(address _creator, address _oracle, bytes32 _identifier, uint _fundingAmount) override external {
+    function createMarket(address _creator, address _oracle, bytes32 _identifier) override external returns (address marketAddress){
         deployParams = DeployParams({creator: _creator, oracle: _oracle, identifier: _identifier});
-        address marketAddress = address(new Market{salt: keccak256(abi.encode(_creator, _oracle, _identifier))}());
+        marketAddress = address(new Market{salt: keccak256(abi.encode(_creator, _oracle, _identifier))}());
         delete deployParams;
-
-        // fund
-        (address tokenC,,) = IMarket(marketAddress).getTokenAddresses();
-        TransferHelper.safeTransferFrom(tokenC, msg.sender, marketAddress, _fundingAmount);
-        IMarket(marketAddress).fund();
-
         emit MarketCreated(marketAddress);
     }
 }

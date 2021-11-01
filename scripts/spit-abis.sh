@@ -11,4 +11,3 @@ OracleMultiSig=$(spit_abi OracleMultiSig "")
 MemeToken=$(spit_abi MemeToken "")
 ContractHelper=$(spit_abi ContractHelper helpers/)
 Market=$(spit_abi Market "")
-echo "$MarketFactory"

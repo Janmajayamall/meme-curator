@@ -23,24 +23,23 @@ contract MarketRouterTest is DSTest, Shared {
         assertEq(MarketRouter(marketRouter).getMarketAddress(address(this), oracle, sharedIdentifier), getExpectedMarketAddress(sharedIdentifier));
     }
 
-    // function test_createMarket(bytes32 _identifier, uint amount) external {
-    //     if (amount == 0) return;
-    //     MemeToken(memeToken).approve(marketRouter, amount);
-    //     MarketRouter(marketRouter).createMarket(address(this), oracle, _identifier, amount);
-    //     address expectedMarketAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, _identifier);
+    function test_createMarket(bytes32 _identifier, uint120 amount) external {
+        if (amount == 0) return;
+        MemeToken(memeToken).approve(marketRouter, amount);
+        uint half = amount/2;
+        MarketRouter(marketRouter).createAndPlaceBetOnMarket(address(this), oracle, _identifier, half, half, 1);
+        address expectedMarketAddress = MarketRouter(marketRouter).getMarketAddress(address(this), oracle, _identifier);
         
-    //     assertEq(getMarketStage(expectedMarketAddress), 1);
-    // }
+        assertEq(getMarketStage(expectedMarketAddress), 1);
+    }
     
 
-    // function testFail_createExistingMarket() external {
-    //     bytes32 _identifier = 0x0401030400040101040403020201030003000000010202020104010201000103;
-    //     uint _funding = 10*10**18;
-    //     MemeToken(memeToken).approve(marketRouter, _funding);
-    //     MarketRouter(marketRouter).createMarket(address(this), oracle, _identifier, _funding);
-    //     MemeToken(memeToken).approve(marketRouter, _funding);
-    //     MarketRouter(marketRouter).createMarket(address(this), oracle, _identifier, _funding); // should fail
-    // }
+    function testFail_createExistingMarket() external {
+        bytes32 _identifier = 0x0401030400040101040403020201030003000000010202020104010201000103;
+        MemeToken(memeToken).approve(marketRouter, 22*10**18);
+        MarketRouter(marketRouter).createAndPlaceBetOnMarket(address(this), oracle, _identifier, 10*10**18, 1*10**18, 1);
+        MarketRouter(marketRouter).createAndPlaceBetOnMarket(address(this), oracle, _identifier, 10*10**18, 1*10**18, 1); // should fail
+    }
 
     function test_buyExactTokensForMaxCTokens() external {
         createDefaultMarket();

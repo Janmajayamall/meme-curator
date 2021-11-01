@@ -74,16 +74,18 @@ contract Shared {
     }
 
     function createDefaultMarket() internal {
-        MemeToken(memeToken).approve(marketFactory, sharedFundingAmount);
         bytes32 _identifier = 0x0401030400040101040403020201030003000000010202020104010201000103;
-        MarketFactory(marketFactory).createMarket(address(this), oracle, sharedIdentifier, sharedFundingAmount);
+        MarketFactory(marketFactory).createMarket(address(this), oracle, sharedIdentifier);
         marketAddress = getExpectedMarketAddress(_identifier);
+        MemeToken(memeToken).transfer(marketAddress, sharedFundingAmount);
+        Market(marketAddress).fund();
     }
 
     function createMarket(bytes32 _identifier, uint _fundingAmount) internal {
-        MemeToken(memeToken).approve(marketFactory, _fundingAmount);
-        MarketFactory(marketFactory).createMarket(address(this), oracle, _identifier, _fundingAmount);
+        MarketFactory(marketFactory).createMarket(address(this), oracle, _identifier);
         marketAddress = getExpectedMarketAddress(_identifier);
+        MemeToken(memeToken).transfer(marketAddress, _fundingAmount);
+        Market(marketAddress).fund();
     }
 
     function getMarketContractInitBytecodeHash() internal returns (bytes32 initHash){

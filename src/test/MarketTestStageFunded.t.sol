@@ -68,38 +68,17 @@ contract MarketTestStageFunded is MarketTestShared {
     }
 
 
-    function test_marketCreationWithMarketFactory(uint _fundingAmount) public {
-        if (_fundingAmount == 0) return;
-        MemeToken(memeToken).approve(marketFactory, _fundingAmount);
-        MarketFactory(marketFactory).createMarket(address(this), oracle, sharedIdentifier, _fundingAmount);
+    function test_marketCreationWithMarketFactory() public {
+        MarketFactory(marketFactory).createMarket(address(this), oracle, sharedIdentifier);
         address expectedAddress = getExpectedMarketAddress(sharedIdentifier);
         emit log_named_address("addressss", expectedAddress);
 
-        // check market has been funded & tokenC balance == _fundingAmount
-        assertEq(getMarketStage(expectedAddress), uint(1));
-        assertEq(MemeToken(memeToken).balanceOf(expectedAddress), _fundingAmount);
+        uint size;
+        assembly {
+            size := extcodesize(expectedAddress)
+        }
 
-        // check outcome token balances == _fundingAmount
-        (,address token0, address token1) = Market(expectedAddress).getTokenAddresses();
-        assertEq(OutcomeToken(token0).balanceOf(expectedAddress), _fundingAmount);
-        assertEq(OutcomeToken(token1).balanceOf(expectedAddress), _fundingAmount);
-        assertTrue(false);
-
-    }
-
-    function testFail_marketCreationWithMarketFactoryTwice() public {
-        MarketFactory(marketFactory).createMarket(address(this), oracle, sharedIdentifier, 10*10**18);
-        MarketFactory(marketFactory).createMarket(address(this), oracle, sharedIdentifier, 10*10**18);
-    }
-
-
-    // function test_marketCreationWithMarketRouter(bytes32 _identifier, uint120 _fundingAmount) public {
-    //     if (_fundingAmount  == 0) return;
-    //     MemeToken(memeToken).approve(marketRouter, _fundingAmount);
-    //     MarketRouter(marketRouter).createMarket(address(this), oracle, _identifier, _fundingAmount);
-
-    //     // check market exists
-    //     address expectedAddress = getExpectedMarketAddress(_identifier);
+        assertGt(size,0);
 
         // // check market has been funded & tokenC balance == _fundingAmount
         // assertEq(getMarketStage(expectedAddress), uint(1));
@@ -109,7 +88,38 @@ contract MarketTestStageFunded is MarketTestShared {
         // (,address token0, address token1) = Market(expectedAddress).getTokenAddresses();
         // assertEq(OutcomeToken(token0).balanceOf(expectedAddress), _fundingAmount);
         // assertEq(OutcomeToken(token1).balanceOf(expectedAddress), _fundingAmount);
-    // }
+        // assertTrue(false);
+
+    }
+
+    function testFail_marketCreationWithMarketFactoryTwice() public {
+        MarketFactory(marketFactory).createMarket(address(this), oracle, sharedIdentifier);
+        MarketFactory(marketFactory).createMarket(address(this), oracle, sharedIdentifier);
+    }
+
+
+    function test_marketCreationWithMarketRouter(bytes32 _identifier, uint120 _fundingAmount) public {
+        if (_fundingAmount  == 0) return;
+        MemeToken(memeToken).approve(marketRouter, uint256(_fundingAmount)+1*10**18);
+        MarketRouter(marketRouter).createAndPlaceBetOnMarket(address(this), oracle, _identifier, _fundingAmount, 1*10**18, 1);
+        // check market exists
+        address expectedAddress = getExpectedMarketAddress(_identifier);
+
+        // check market has been funded & tokenC balance == _fundingAmount
+        assertEq(getMarketStage(expectedAddress), uint(1));
+        assertEq(MemeToken(memeToken).balanceOf(expectedAddress), uint(_fundingAmount)+1*10**18);
+
+        // check outcome token balances == _fundingAmount
+        (,address token0, address token1) = Market(expectedAddress).getTokenAddresses();
+        assertEq(OutcomeToken(token0).balanceOf(expectedAddress), uint(_fundingAmount)+1*10**18);
+        assertEq(OutcomeToken(token1).balanceOf(expectedAddress), _fundingAmount);
+    }
+
+    function testFail_marketCreationWithMarketRouterTwice() public {
+        MemeToken(memeToken).approve(marketRouter, 4*10**18);
+        MarketRouter(marketRouter).createAndPlaceBetOnMarket(address(this), oracle, sharedIdentifier, 1*10**18, 1*10**18, 1);
+        MarketRouter(marketRouter).createAndPlaceBetOnMarket(address(this), oracle, sharedIdentifier, 1*10**18, 1*10**18, 1); // this should fail
+    }
 
     function test_marketBuyPostFunding(bytes32 _identifier, uint120 _fundingAmount, uint120 _a0, uint120 _a1) public {
         if (_fundingAmount == 0) return;

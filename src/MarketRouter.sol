@@ -11,11 +11,12 @@ import './interfaces/IMarketFactory.sol';
 contract MarketRouter {
     address public factory;
 
-    bytes32 constant public MARKET_INIT_CODE_HASH = 0xc0a4df30a9b7ad588d99429f61871dd90dc770a8b76e2e43fd49edfdb9db7fa3;
+    bytes32 constant public MARKET_INIT_CODE_HASH = 0x0d04808a40ec4baf6ff6138cbc57d4aa728fa89a0773973af8c7b2dd1ed9f331;
 
     constructor(address _factory) {
         factory = _factory;
     }
+
 
     /// @notice Contract address of a prediction market
     function getMarketAddress(address creator, address oracle, bytes32 identifier) public view returns (address marketAddress) {
@@ -25,6 +26,22 @@ contract MarketRouter {
                 keccak256(abi.encode(creator, oracle, identifier)),
                 MARKET_INIT_CODE_HASH
             )))));
+    }
+
+    /// @notice Create, fund, and place bet on a market
+    function createAndPlaceBetOnMarket(address _creator, address _oracle, bytes32 _identifier, uint _fundingAmount, uint _amountIn, uint _for) external {
+        require(_for < 2 && _fundingAmount > 0);
+        address marketAddress = IMarketFactory(factory).createMarket(_creator, _oracle, _identifier);
+
+        (address tokenC,,) = IMarket(marketAddress).getTokenAddresses();
+
+        // fund
+        TransferHelper.safeTransferFrom(tokenC, msg.sender, marketAddress, _fundingAmount);
+        IMarket(marketAddress).fund();
+
+        TransferHelper.safeTransferFrom(tokenC, msg.sender, marketAddress, _amountIn);
+        if (_for == 0) IMarket(marketAddress).buy(_amountIn, 0, msg.sender);
+        if (_for == 1) IMarket(marketAddress).buy(0, _amountIn, msg.sender);
     }
 
     /// @notice Buy exact amountOfToken0 & amountOfToken1 with collteral tokens <= amountInCMax
