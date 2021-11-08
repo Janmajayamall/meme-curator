@@ -32,7 +32,7 @@ contract MarketTestStageFunded is MarketTestShared {
     function testFail_marketCreationInactiveOracle() public  {
         address[] memory oracleOwners = new address[](1);
         oracleOwners[0] = address(this);
-        address tempOracle = address(new OracleMultiSig(oracleOwners, 1, 10));
+        address tempOracle = address(new OracleMultiSig(oracleOwners, 1, 10, address(this)));
         OracleMultiSig(tempOracle).addTxSetupOracle(
             sharedOracleConfig.tokenC,
             false,
@@ -51,7 +51,7 @@ contract MarketTestStageFunded is MarketTestShared {
     function testFail_marketCreationWithInvalidOracleFee() public {
         address[] memory oracleOwners = new address[](1);
         oracleOwners[0] = address(this);
-        address tempOracle = address(new OracleMultiSig(oracleOwners, 1, 10));
+        address tempOracle = address(new OracleMultiSig(oracleOwners, 1, 10, address(this)));
         OracleMultiSig(tempOracle).addTxSetupOracle(
             sharedOracleConfig.tokenC,
             sharedOracleConfig.isActive,

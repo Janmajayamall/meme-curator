@@ -47,7 +47,7 @@ contract GasMarketTestShared is DSTest {
 
         // setup oracle
         oracleOwners[0] = address(this);
-        oracle = address(new OracleMultiSig(oracleOwners, 1, 10));
+        oracle = address(new OracleMultiSig(oracleOwners, 1, 10, address(this)));
         sharedOracleConfig = OracleConfig(
             memeToken,
             true, 

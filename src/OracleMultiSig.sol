@@ -8,8 +8,11 @@ import './interfaces/IModerationCommitee.sol';
 contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
 
     MarketConfig public marketConfig;
+    address public delegate;
 
-    constructor(address[] memory _owners, uint _required, uint maxCount) MultiSigWallet(_owners, _required, maxCount) {}
+    constructor(address[] memory _owners, uint _required, uint maxCount, address _delegate) MultiSigWallet(_owners, _required, maxCount) {
+        delegate = _delegate;
+    }
 
     function getMarketParams() external view override returns (address,bool,uint8,uint8,uint16,uint32,uint32,uint32){
         MarketConfig memory _config = marketConfig;
@@ -74,6 +77,10 @@ contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
         marketConfig.resolutionBufferBlocks = _resolutionBufferBlocks;
     }
 
+    function changeDelegate(address _delegate) external onlyWallet {
+        delegate = _delegate;
+    }
+
     /* 
     Helper functions for adding txs for functions above
      */
@@ -104,6 +111,11 @@ contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
             "changeDonBufferBlocks(uint32)", 
             _donBufferBlocks
             );
+        submitTransaction(address(this), 0, data);
+    }
+
+    function addTxChangeDelegate(address _delegate) external ownerExists(msg.sender) {
+        bytes memory data = abi.encodeWithSignature("changeDelegate(address)", _delegate);
         submitTransaction(address(this), 0, data);
     }
 }
