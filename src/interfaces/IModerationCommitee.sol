@@ -14,5 +14,6 @@ interface IModerationCommitte {
         uint32 resolutionBufferBlocks;
     }
 
-    function getMarketParams() external view returns (address,bool,uint8,uint8,uint16,uint32,uint32,uint32);
+    function getMarketParams() external view returns (address,bool,uint8,uint8,uint16,uint32,uint32,uint32);    
+    function getDelegate() external view returns(address);
 }

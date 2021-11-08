@@ -8,7 +8,7 @@ import './interfaces/IModerationCommitee.sol';
 contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
 
     MarketConfig public marketConfig;
-    address public delegate;
+    address delegate;
 
     constructor(address[] memory _owners, uint _required, uint maxCount, address _delegate) MultiSigWallet(_owners, _required, maxCount) {
         delegate = _delegate;
@@ -28,7 +28,11 @@ contract OracleMultiSig is MultiSigWallet, IModerationCommitte {
         );
     }
 
-    function setupOracle(address _tokenC, bool _isActive, uint8 _feeNumerator, uint8 _feeDenominator,uint16 _donEscalationLimit, uint32 _expireBufferBlocks, uint32 _donBufferBlocks, uint32 _resolutionBufferBlocks) external {
+    function getDelegate() external view override returns (address) {
+        return delegate;
+    }
+
+    function setupOracle(address _tokenC, bool _isActive, uint8 _feeNumerator, uint8 _feeDenominator,uint16 _donEscalationLimit, uint32 _expireBufferBlocks, uint32 _donBufferBlocks, uint32 _resolutionBufferBlocks) external onlyWallet {
         MarketConfig memory _config;
         _config.tokenC = _tokenC;
         _config.isActive = _isActive;

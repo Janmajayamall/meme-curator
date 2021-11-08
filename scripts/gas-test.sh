@@ -14,6 +14,7 @@ OracleMultiSig=0x3A8ed689D382Fe98445bf73c087A2F6102B75ECe
 MemeToken=0xB255efe9889D45277D3421e289E2E8A37Fe5b180
 ContractHelper=0x8B4571514AB4d420Af057929654D89A4AFd70E7c
 DEPLOYER=0xed53fa304E7fcbab4E8aCB184F5FC6F69Ed54fF6
+OracleFactory=0x38CEbFf6520aB9A3238809c53b12a3668e5F4779
 
 
 # # # mint max meme tokens to user
@@ -28,11 +29,13 @@ DEPLOYER=0xed53fa304E7fcbab4E8aCB184F5FC6F69Ed54fF6
 estimate=$(seth estimate $OracleMultiSig "addTxSetupOracle(address,bool,uint8,uint8,uint16,uint32,uint32,uint32)" $MemeToken true 1 10 5 500 100 100)
 seth send $OracleMultiSig "addTxSetupOracle(address,bool,uint8,uint8,uint16,uint32,uint32,uint32)" $MemeToken true 1 10 5 500 100 100 --gas $estimate
 
+# Deploy Single Oracle from Oracle Factory 
+# estimate=$(seth estimate $OracleFactory "setupSingleOracle(address,address,bool,uint8,uint8,uint16,uint32,uint32,uint32)" $DEPLOYER $MemeToken true 1 10 5 100 100 100)
+# seth send $OracleFactory "setupSingleOracle(address,address,bool,uint8,uint8,uint16,uint32,uint32,uint32)" $DEPLOYER $MemeToken true 1 10 5 100 100 100 --gas estimate
+
 # # create new market
 # estimate=$(seth estimate $MarketRouter "createAndPlaceBetOnMarket(address,address,bytes32,uint256,uint256,uint256)" $DEPLOYER $OracleMultiSig $(seth --to-bytes32 $(seth --to-hex 11413)) $(seth --to-wei 1 eth) $(seth --to-wei 1 eth) 1)
 # seth send $MarketRouter "createAndPlaceBetOnMarket(address,address,bytes32,uint256,uint256,uint256)" $DEPLOYER $OracleMultiSig $(seth --to-bytes32 $(seth --to-hex 11413)) $(seth --to-wei 1 eth) $(seth --to-wei 1 eth) 1 --gas $estimate
-
-
 
 # marketInitCodehash=$(seth call $ContractHelper "getMarketContractInitBytecodeHash()")
 # echo "Market.sol init code hash" $marketInitCodehash
@@ -68,4 +71,5 @@ seth send $OracleMultiSig "addTxSetupOracle(address,bool,uint8,uint8,uint16,uint
 # seth send 0xFB626449A112C95FECF7829deeA9445C9ECC7e56 "approve(address,uint256)" 0xD2Ac5854F87e2aF6c0c2dEc8f31B4588A5093131 $(seth --max-uint 256) --gas 124841
 
 
-# 
+# Improving oracle experience
+1. 
