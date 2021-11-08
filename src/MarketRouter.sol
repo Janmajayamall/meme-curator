@@ -11,7 +11,7 @@ import './interfaces/IMarketFactory.sol';
 contract MarketRouter {
     address public factory;
 
-    bytes32 constant public MARKET_INIT_CODE_HASH = 0x0d04808a40ec4baf6ff6138cbc57d4aa728fa89a0773973af8c7b2dd1ed9f331;
+    bytes32 constant public MARKET_INIT_CODE_HASH = 0x2cd735970294d7c999ba32b7c9e7642142e8fe862a90e52767351d2df671f179;
 
     constructor(address _factory) {
         factory = _factory;

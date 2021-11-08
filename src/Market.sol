@@ -351,7 +351,7 @@ contract Market is IMarket {
 
     function setOutcome(uint8 outcome) external override {
         require(outcome < 3);
-
+        
         MarketDetails memory _details = marketDetails;
         if (_details.stage == uint8(Stages.MarketFunded) 
             && _details.donEscalationLimit == 0
@@ -363,11 +363,13 @@ contract Market is IMarket {
         require(_details.stage == uint8(Stages.MarketResolve) && block.number < _details.resolutionEndsAtBlock);
         
         address _oracle = oracle;
+        require(msg.sender == _oracle);
+    
         uint oracleFeeNumerator = _details.oracleFeeNumerator;
         uint oracleFeeDenominator = _details.oracleFeeDenominator;
 
+        uint fee;
         if (outcome != 2 && oracleFeeNumerator != 0){
-            uint fee;
             uint _reserveDoN1 = reserveDoN1;
             uint _reserveDoN0 = reserveDoN0;
             if (outcome == 0 && _reserveDoN1 != 0) {
@@ -378,14 +380,13 @@ contract Market is IMarket {
                 fee = (_reserveDoN0*oracleFeeNumerator)/oracleFeeDenominator;
                 reserveDoN0 -= fee;
             }
-            IERC20(tokenC).transfer(_oracle, fee);
         }
         
         _details.outcome = outcome;
         _details.stage = uint8(Stages.MarketClosed);
         marketDetails = _details;
 
-        require(msg.sender == _oracle);
+        IERC20(tokenC).transfer(_oracle, fee);
 
         emit OutcomeSet(address(this));
     }
@@ -395,10 +396,8 @@ contract Market is IMarket {
         require(valid);
         address _creator = creator;
         require(msg.sender == _creator);
-        uint _reserve0 = reserve0;
-        uint _reserve1 = reserve1;
-        IOutcomeToken(token0).transfer(_creator, _reserve0);
-        IOutcomeToken(token1).transfer(_creator, _reserve1);
+        IOutcomeToken(token0).transfer(_creator, reserve0);
+        IOutcomeToken(token1).transfer(_creator, reserve1);
         reserve0 = 0;
         reserve1 = 0;
     }
