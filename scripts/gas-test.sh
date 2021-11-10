@@ -8,16 +8,16 @@ set -eo pipefail
 # OracleMultiSig=$(jq ".OracleMultiSig" out/addresses.json)
 # MemeToken=$(jq ".MemeToken" out/addresses.json)
 # ContractHelper=$(jq ".ContractHelper" out/addresses.json)
-MarketFactory=0x36beE43e0548cfAa63e8094895b2Ede098e36B46
-MarketRouter=0x8EfE5a96eaE05D72492d9A0296794adB0EF76d78
+MarketFactory=0x01bE36d951B548E1074d15F3144291b0f8C6B3A0
+MarketRouter=0xA8e7414ba127e7B5141f216cBb1f2c0ECBDd6d1D
 OracleMultiSig=0x3A8ed689D382Fe98445bf73c087A2F6102B75ECe
-MemeToken=0xB255efe9889D45277D3421e289E2E8A37Fe5b180
-ContractHelper=0x8B4571514AB4d420Af057929654D89A4AFd70E7c
+MemeToken=0x8880D3f25c9A3Bc42Afdc384c3f4A07cc1FedDCf
+ContractHelper=0x937561C33f149530D8f1f8b7a43297f8E6b6d392
 DEPLOYER=0xed53fa304E7fcbab4E8aCB184F5FC6F69Ed54fF6
-OracleFactory=0x38CEbFf6520aB9A3238809c53b12a3668e5F4779
+OracleFactory=0x57477F917802B59817910D1e8b1fD05090C6a461
 
 
-# # # mint max meme tokens to user
+# # mint max meme tokens to user
 # estimate=$(seth estimate $MemeToken "mint(address,uint256)" $DEPLOYER $(seth --max-uint 256) )
 # seth send $MemeToken "mint(address,uint256)" $DEPLOYER $(seth --max-uint 256) --gas $estimate
 # # # give mmax allowance to market router & market factory
@@ -25,17 +25,17 @@ OracleFactory=0x38CEbFf6520aB9A3238809c53b12a3668e5F4779
 # seth send $MemeToken "approve(address,uint256)" $MarketRouter $(seth --max-uint 256) --gas $estimate
 # # seth send $MemeToken "approve(address,uint256)" $MarketFactory $(seth --max-uint 256) --gas $estimate
 
-# setup orcle configs
-estimate=$(seth estimate $OracleMultiSig "addTxSetupOracle(address,bool,uint8,uint8,uint16,uint32,uint32,uint32)" $MemeToken true 1 10 5 500 100 100)
-seth send $OracleMultiSig "addTxSetupOracle(address,bool,uint8,uint8,uint16,uint32,uint32,uint32)" $MemeToken true 1 10 5 500 100 100 --gas $estimate
+# # setup orcle configs
+# estimate=$(seth estimate $OracleMultiSig "addTxSetupOracle(address,bool,uint8,uint8,uint16,uint32,uint32,uint32)" $MemeToken true 1 10 5 500 100 100)
+# seth send $OracleMultiSig "addTxSetupOracle(address,bool,uint8,uint8,uint16,uint32,uint32,uint32)" $MemeToken true 1 10 5 500 100 100 --gas $estimate
 
-# Deploy Single Oracle from Oracle Factory 
+# # Deploy Single Oracle from Oracle Factory 
 # estimate=$(seth estimate $OracleFactory "setupSingleOracle(address,address,bool,uint8,uint8,uint16,uint32,uint32,uint32)" $DEPLOYER $MemeToken true 1 10 5 100 100 100)
-# seth send $OracleFactory "setupSingleOracle(address,address,bool,uint8,uint8,uint16,uint32,uint32,uint32)" $DEPLOYER $MemeToken true 1 10 5 100 100 100 --gas estimate
+# seth send $OracleFactory "setupSingleOracle(address,address,bool,uint8,uint8,uint16,uint32,uint32,uint32)" $DEPLOYER $MemeToken true 1 10 5 100 100 100 --gas $estimate
 
 # # create new market
-# estimate=$(seth estimate $MarketRouter "createAndPlaceBetOnMarket(address,address,string,uint256,uint256,uint256)" $DEPLOYER $OracleMultiSig "https://www.coindesk.com/" $(seth --to-wei 1 eth) $(seth --to-wei 1 eth) 1)
-# seth send $MarketRouter "createAndPlaceBetOnMarket(address,address,bytes32,uint256,uint256,uint256)" $DEPLOYER $OracleMultiSig "https://www.coindesk.com/" $(seth --to-wei 1 eth) $(seth --to-wei 1 eth) 1 --gas $estimate
+estimate=$(seth estimate $MarketRouter "createAndPlaceBetOnMarket(address,address,string,uint256,uint256,uint256)" $DEPLOYER $OracleMultiSig '"https://www.coindesk.com/"' $(seth --to-wei 1 eth) $(seth --to-wei 1 eth) 1)
+seth send $MarketRouter "createAndPlaceBetOnMarket(address,address,string,uint256,uint256,uint256)" $DEPLOYER $OracleMultiSig '"https://www.coindesk.com/"' $(seth --to-wei 1 eth) $(seth --to-wei 1 eth) 1 --gas $estimate
 
 # marketInitCodehash=$(seth call $ContractHelper "getMarketContractInitBytecodeHash()")
 # echo "Market.sol init code hash" $marketInitCodehash
@@ -71,5 +71,7 @@ seth send $OracleMultiSig "addTxSetupOracle(address,bool,uint8,uint8,uint16,uint
 # seth send 0xFB626449A112C95FECF7829deeA9445C9ECC7e56 "approve(address,uint256)" 0xD2Ac5854F87e2aF6c0c2dEc8f31B4588A5093131 $(seth --max-uint 256) --gas 124841
 
 
-# Improving oracle experience
-1. 
+
+
+
+seth send 0xA8e7414ba127e7B5141f216cBb1f2c0ECBDd6d1D "createAndPlaceBetOnMarket(address,address,string,uint256,uint256,uint256)" 0xed53fa304E7fcbab4E8aCB184F5FC6F69Ed54fF6 0x3A8ed689D382Fe98445bf73c087A2F6102B75ECe '"dajwdajdoiajdaiodjaio/"' $(seth --to-wei 1 eth) $(seth --to-wei 1 eth) 1 --gas 4965085
