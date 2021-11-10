@@ -180,7 +180,7 @@ contract MarketTestStageResolve is MarketTestShared {
         (,,,,uint donEscalationLimit,,,) = OracleMultiSig(oracle).getMarketParams();
         assertEq(donEscalationLimit, 0);
 
-        createMarket(0x0101000100010001010101000101000001010001010100000101000001010101, 1*10**18);
+        createMarket("dwaijdaoidjaoidjaoi", 1*10**18);
         simTradesInFavorOfOutcome0();
         expireMarket();
     }

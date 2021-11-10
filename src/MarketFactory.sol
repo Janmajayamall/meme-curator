@@ -12,14 +12,14 @@ contract MarketFactory is IMarketFactory {
     struct DeployParams {
         address creator;
         address oracle;
-        bytes32 identifier;
+        string identifier;
     }
 
     DeployParams public override deployParams;
 
     event MarketCreated(address indexed market);
 
-    function createMarket(address _creator, address _oracle, bytes32 _identifier) override external returns (address marketAddress){
+    function createMarket(address _creator, address _oracle, string memory _identifier) override external returns (address marketAddress){
         deployParams = DeployParams({creator: _creator, oracle: _oracle, identifier: _identifier});
         marketAddress = address(new Market{salt: keccak256(abi.encode(_creator, _oracle, _identifier))}());
         delete deployParams;

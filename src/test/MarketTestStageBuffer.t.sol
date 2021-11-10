@@ -330,7 +330,7 @@ contract MarketTestStageBuffer is MarketTestShared {
         (,,,,,,uint donBufferBlocks,) = OracleMultiSig(oracle).getMarketParams();
         assertEq(donBufferBlocks, 0);
 
-        createMarket(0x0101000100010001010101000101000001010001010100000101000001010101, 1*10**18);
+        createMarket("dwadjaiodjaiojaoij", 1*10**18);
         simTradesInFavorOfOutcome0();
         expireMarket();
      }
@@ -378,7 +378,7 @@ contract MarketTestStageBuffer is MarketTestShared {
         assertEq(donBufferBlocks, 0);
         assertEq(donEscalationLimit, 0);
 
-        createMarket(0x0101000100010001010101000101000001010001010100000101000001010101, 1*10**18);
+        createMarket("duhdiawdjaiodjaiodjaoidjaodijaoi", 1*10**18);
         simTradesInFavorOfOutcome0();
         expireMarket();
      }

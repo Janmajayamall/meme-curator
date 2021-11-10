@@ -23,8 +23,9 @@ contract MarketRouterTest is DSTest, Shared {
         assertEq(MarketRouter(marketRouter).getMarketAddress(address(this), oracle, sharedIdentifier), getExpectedMarketAddress(sharedIdentifier));
     }
 
-    function test_createMarket(bytes32 _identifier, uint120 amount) external {
+    function test_createMarket(uint120 amount) external {
         if (amount == 0) return;
+        string memory _identifier = "http://www.google.com/";
         MemeToken(memeToken).approve(marketRouter, amount);
         uint half = amount/2;
         MarketRouter(marketRouter).createAndPlaceBetOnMarket(address(this), oracle, _identifier, half, half, 1);
@@ -35,7 +36,7 @@ contract MarketRouterTest is DSTest, Shared {
     
 
     function testFail_createExistingMarket() external {
-        bytes32 _identifier = 0x0401030400040101040403020201030003000000010202020104010201000103;
+        string memory _identifier = "http://www.google.com/";
         MemeToken(memeToken).approve(marketRouter, 22*10**18);
         MarketRouter(marketRouter).createAndPlaceBetOnMarket(address(this), oracle, _identifier, 10*10**18, 1*10**18, 1);
         MarketRouter(marketRouter).createAndPlaceBetOnMarket(address(this), oracle, _identifier, 10*10**18, 1*10**18, 1); // should fail

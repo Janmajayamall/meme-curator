@@ -38,7 +38,7 @@ contract Shared {
     OracleConfig sharedOracleConfig;
     StakingInfo simStakingInfo;
     uint sharedFundingAmount = 1*10**18;
-    bytes32 sharedIdentifier = 0x0401030400040101040403020201030003000000010202020104010201000103;
+    string sharedIdentifier = "http://www.google.com/";
 
     address hevm = 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D;
 
@@ -74,14 +74,14 @@ contract Shared {
     }
 
     function createDefaultMarket() internal {
-        bytes32 _identifier = 0x0401030400040101040403020201030003000000010202020104010201000103;
-        MarketFactory(marketFactory).createMarket(address(this), oracle, sharedIdentifier);
+        string memory _identifier = "dawdadxcftvygbhunj";
+        MarketFactory(marketFactory).createMarket(address(this), oracle, _identifier);
         marketAddress = getExpectedMarketAddress(_identifier);
         MemeToken(memeToken).transfer(marketAddress, sharedFundingAmount);
         Market(marketAddress).fund();
     }
 
-    function createMarket(bytes32 _identifier, uint _fundingAmount) internal {
+    function createMarket(string memory _identifier, uint _fundingAmount) internal {
         MarketFactory(marketFactory).createMarket(address(this), oracle, _identifier);
         marketAddress = getExpectedMarketAddress(_identifier);
         MemeToken(memeToken).transfer(marketAddress, _fundingAmount);
@@ -93,7 +93,7 @@ contract Shared {
         initHash = keccak256(initCode);
     }
 
-    function getExpectedMarketAddress(bytes32 identifier) internal returns (address market) {
+    function getExpectedMarketAddress(string memory identifier) internal returns (address market) {
         market = address(uint160(uint256(keccak256(abi.encodePacked(
                 hex'ff',
                 marketFactory,

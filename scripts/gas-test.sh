@@ -34,8 +34,8 @@ seth send $OracleMultiSig "addTxSetupOracle(address,bool,uint8,uint8,uint16,uint
 # seth send $OracleFactory "setupSingleOracle(address,address,bool,uint8,uint8,uint16,uint32,uint32,uint32)" $DEPLOYER $MemeToken true 1 10 5 100 100 100 --gas estimate
 
 # # create new market
-# estimate=$(seth estimate $MarketRouter "createAndPlaceBetOnMarket(address,address,bytes32,uint256,uint256,uint256)" $DEPLOYER $OracleMultiSig $(seth --to-bytes32 $(seth --to-hex 11413)) $(seth --to-wei 1 eth) $(seth --to-wei 1 eth) 1)
-# seth send $MarketRouter "createAndPlaceBetOnMarket(address,address,bytes32,uint256,uint256,uint256)" $DEPLOYER $OracleMultiSig $(seth --to-bytes32 $(seth --to-hex 11413)) $(seth --to-wei 1 eth) $(seth --to-wei 1 eth) 1 --gas $estimate
+# estimate=$(seth estimate $MarketRouter "createAndPlaceBetOnMarket(address,address,string,uint256,uint256,uint256)" $DEPLOYER $OracleMultiSig "https://www.coindesk.com/" $(seth --to-wei 1 eth) $(seth --to-wei 1 eth) 1)
+# seth send $MarketRouter "createAndPlaceBetOnMarket(address,address,bytes32,uint256,uint256,uint256)" $DEPLOYER $OracleMultiSig "https://www.coindesk.com/" $(seth --to-wei 1 eth) $(seth --to-wei 1 eth) 1 --gas $estimate
 
 # marketInitCodehash=$(seth call $ContractHelper "getMarketContractInitBytecodeHash()")
 # echo "Market.sol init code hash" $marketInitCodehash

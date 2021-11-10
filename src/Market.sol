@@ -18,7 +18,6 @@ contract Market is IMarket {
     address immutable token1;
     address immutable tokenC;
 
-    bytes32 immutable identifier;
     address immutable creator;
     address immutable oracle;
 
@@ -32,6 +31,7 @@ contract Market is IMarket {
     mapping(bytes32 => uint256) stakes;
 
     MarketDetails marketDetails;
+    string identifier;
 
     constructor(){
         address _oracle;
@@ -92,7 +92,7 @@ contract Market is IMarket {
         return (true, _details.outcome);
     }
 
-    function getMarketInfo() external override view returns(bytes32, address, address){
+    function getMarketInfo() external override view returns(string memory, address, address){
         return (identifier,creator,oracle);
     }
 

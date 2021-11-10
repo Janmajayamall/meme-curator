@@ -24,7 +24,7 @@ contract GasMarketTestShared is DSTest {
     struct DeployParams {
         address creator;
         address oracle;
-        bytes32 identifier;
+        string identifier;
     }
 
     address oracle;
@@ -72,7 +72,7 @@ contract GasMarketTestShared is DSTest {
         deployParams = DeployParams({
             creator:address(this),
             oracle:oracle,
-            identifier:0x0401030400040101040403020201030003000000010202020104010201000103
+            identifier:"idjaoidjaiodjaoi"
         });
         marketAddress = address(new Market());
 

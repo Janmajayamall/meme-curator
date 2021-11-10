@@ -20,12 +20,12 @@ contract MarketTestStageFunded is MarketTestShared {
     struct DeployParams {
         address creator;
         address oracle;
-        bytes32 identifier;
+        string identifier;
     }
     DeployParams public deployParams;
 
     function test_marketCreation() public  {
-        deployParams = DeployParams({creator: address(this), oracle: oracle, identifier:0x0401030400040101040403020201030003000000010202020104010201000103});
+        deployParams = DeployParams({creator: address(this), oracle: oracle, identifier:sharedIdentifier});
         address marketAddress = address(new Market());
     }
 
@@ -44,7 +44,7 @@ contract MarketTestStageFunded is MarketTestShared {
             sharedOracleConfig.resolutionBufferBlocks
         );
 
-        deployParams = DeployParams({creator: address(this), oracle: tempOracle, identifier:0x0401030400040101040403020201030003000000010202020104010201000103});
+        deployParams = DeployParams({creator: address(this), oracle: tempOracle, identifier:sharedIdentifier});
         address marketAddress = address(new Market());
     }
 
@@ -63,7 +63,7 @@ contract MarketTestStageFunded is MarketTestShared {
             sharedOracleConfig.resolutionBufferBlocks
         );
 
-        deployParams = DeployParams({creator: address(this), oracle: tempOracle, identifier:0x0401030400040101040403020201030003000000010202020104010201000103});
+        deployParams = DeployParams({creator: address(this), oracle: tempOracle, identifier:sharedIdentifier});
         address marketAddress = address(new Market());
     }
 
@@ -98,12 +98,12 @@ contract MarketTestStageFunded is MarketTestShared {
     }
 
 
-    function test_marketCreationWithMarketRouter(bytes32 _identifier, uint120 _fundingAmount) public {
+    function test_marketCreationWithMarketRouter(uint120 _fundingAmount) public {
         if (_fundingAmount  == 0) return;
         MemeToken(memeToken).approve(marketRouter, uint256(_fundingAmount)+1*10**18);
-        MarketRouter(marketRouter).createAndPlaceBetOnMarket(address(this), oracle, _identifier, _fundingAmount, 1*10**18, 1);
+        MarketRouter(marketRouter).createAndPlaceBetOnMarket(address(this), oracle, "http://www.google.com/", _fundingAmount, 1*10**18, 1);
         // check market exists
-        address expectedAddress = getExpectedMarketAddress(_identifier);
+        address expectedAddress = getExpectedMarketAddress("http://www.google.com/");
 
         // check market has been funded & tokenC balance == _fundingAmount
         assertEq(getMarketStage(expectedAddress), uint(1));
@@ -123,7 +123,7 @@ contract MarketTestStageFunded is MarketTestShared {
 
     function test_marketBuyPostFunding(bytes32 _identifier, uint120 _fundingAmount, uint120 _a0, uint120 _a1) public {
         if (_fundingAmount == 0) return;
-        createMarket(_identifier, _fundingAmount);
+        createMarket("dwada", _fundingAmount);
         // buy amount
         uint a0 = uint(_a0);
         uint a1 = uint(_a1);
@@ -138,9 +138,9 @@ contract MarketTestStageFunded is MarketTestShared {
         keepReservesAndBalsInCheck();
     }
 
-    function test_marketSellPostFunding(bytes32 _identifier, uint120 _fundingAmount, uint120 _a0, uint120 _a1) public {
+    function test_marketSellPostFunding(uint120 _fundingAmount, uint120 _a0, uint120 _a1) public {
         if (_fundingAmount == 0) return;
-        createMarket(_identifier, _fundingAmount);
+        createMarket("dwadadadadadadadadada", _fundingAmount);
 
         // buy amount
         uint a0 = _a0;

@@ -19,7 +19,7 @@ contract GasMarketTestStageCreated is GasMarketTestShared {
         deployParams = DeployParams({
             creator:address(this),
             oracle:oracle,
-            identifier:0xa000000000000000000000000000000000000000000000000000000000000000
+            identifier:"dawdiojdoaidm"
         });
     }
 

@@ -11,7 +11,7 @@ import './interfaces/IMarketFactory.sol';
 contract MarketRouter {
     address public factory;
 
-    bytes32 constant public MARKET_INIT_CODE_HASH = 0x2cd735970294d7c999ba32b7c9e7642142e8fe862a90e52767351d2df671f179;
+    bytes32 constant public MARKET_INIT_CODE_HASH = 0xafd9d7476ae82bdc5f129b881537d33f4e31ac28cb51cabf0a9b8c07bdd19a34;
 
     constructor(address _factory) {
         factory = _factory;
@@ -19,7 +19,7 @@ contract MarketRouter {
 
 
     /// @notice Contract address of a prediction market
-    function getMarketAddress(address creator, address oracle, bytes32 identifier) public view returns (address marketAddress) {
+    function getMarketAddress(address creator, address oracle, string memory identifier) public view returns (address marketAddress) {
         marketAddress = address(uint160(uint256(keccak256(abi.encodePacked(
                 hex'ff',
                 factory,
@@ -29,7 +29,7 @@ contract MarketRouter {
     }
 
     /// @notice Create, fund, and place bet on a market
-    function createAndPlaceBetOnMarket(address _creator, address _oracle, bytes32 _identifier, uint _fundingAmount, uint _amountIn, uint _for) external {
+    function createAndPlaceBetOnMarket(address _creator, address _oracle, string memory _identifier, uint _fundingAmount, uint _amountIn, uint _for) external {
         require(_for < 2 && _fundingAmount > 0);
         address marketAddress = IMarketFactory(factory).createMarket(_creator, _oracle, _identifier);
 
