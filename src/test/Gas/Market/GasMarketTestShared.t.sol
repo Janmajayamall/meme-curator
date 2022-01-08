@@ -58,7 +58,7 @@ contract GasMarketTestShared is DSTest {
             10, 
             10);
         OracleMultiSig(oracle).addTxSetupOracle(
-            sharedOracleConfig.tokenC,
+            sharedOracleConfig.token
             sharedOracleConfig.isActive,
             sharedOracleConfig.feeNumerator,
             sharedOracleConfig.feeDenominator,

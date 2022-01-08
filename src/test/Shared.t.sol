@@ -12,7 +12,7 @@ import './../Market.sol';
 
 contract Shared {
  
-     struct OracleConfig {
+    struct OracleConfig {
         address tokenC;
         bool isActive;
         uint8 feeNumerator;
